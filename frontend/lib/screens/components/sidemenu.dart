@@ -3,11 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listen_iq/screens/widgets/colors.dart';
+import 'package:listen_iq/screens/components/colors.dart';
 import 'package:listen_iq/services/router_constants.dart';
 
 class SideMenu extends ConsumerStatefulWidget {
-  const SideMenu({Key? key}) : super(key: key);
+  const SideMenu({super.key});
 
   @override
   ConsumerState<SideMenu> createState() => _SideMenuState();

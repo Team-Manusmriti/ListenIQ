@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:listen_iq/screens/home.dart';
+import 'package:listen_iq/screens/voice_assistant.dart';
 import 'package:listen_iq/services/router_constants.dart';
 
 final GoRouter router = GoRouter(
@@ -13,13 +14,13 @@ final GoRouter router = GoRouter(
         return HomeScreen();
       },
       routes: <RouteBase>[
-        // GoRoute(
-        //   path: '/chat',
-        //   name: RouteConstants.chat,
-        //   builder: (BuildContext context, GoRouterState state) {
-        //     return ChatScreen();
-        //   },
-        // ),
+        GoRoute(
+          path: '/voiceAssistant',
+          name: RouteConstants.voiceAssistant,
+          builder: (BuildContext context, GoRouterState state) {
+            return VoiceAssistantScreen();
+          },
+        ),
         // GoRoute(
         //   path: '/tools',
         //   name: RouteConstants.tools,

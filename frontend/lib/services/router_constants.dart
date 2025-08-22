@@ -3,16 +3,12 @@ class RouteConstants {
   static String splash = "splash";
   static String onboarding = "onboarding";
 
-  // auth routes
-  static String forgotPass = "forgotPassword";
-  static String login = "login";
-  static String signUp = "signUp";
-  static String signUpProfile = "signUpProfile";
-  static String otp = "otp";
-
   // inner routes
   static String home = "home";
   static String profile = "profile";
+  static String chat = "chat";
+  static String chatDetail = "chatDetail";
+  static String voiceAssistant = "voiceAssistant";
 
   // settings routes
   static String notifications = "notifications";

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:listen_iq/services/router.dart';
 import 'screens/home.dart';
 
 void main() {
@@ -11,7 +12,7 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'ListenIQ',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -22,7 +23,8 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         primarySwatch: Colors.deepPurple,
       ),
-      home: const HomeScreen(),
+      routerConfig: router,
+
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(
