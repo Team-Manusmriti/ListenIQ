@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 import 'package:listen_iq/screens/components/voice_assistant/audio_assistant.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -153,40 +154,30 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       setState(() {
         _recognizedText = '';
         _lastWords = '';
+        _words.clear();
       });
 
       await _speech.listen(
-        onResult: (result) {
+        onResult: (val) {
           if (mounted) {
-            final newText = result.recognizedWords;
-            final newWords = newText.split(" ");
-
-            // If new words were added, animate them
-            if (newWords.length > _words.length) {
-              final newWord = newWords.last;
-              setState(() {
-                _words.add(newWord);
-              });
-              _textController.forward(from: 0); // animate each new word
-            }
-
-            _lastFullText = newText;
-          }
-        },
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 3),
-        partialResults: true,
-        localeId: "en_US",
-        onSoundLevelChange: (level) {
-          // This provides additional audio level feedback
-          if (mounted && _isListening) {
             setState(() {
-              _level = math.max(_level, level / 100.0);
+              _recognizedText = val.recognizedWords;
+              _words = val.recognizedWords.split(' ');
+              _lastWords = val.recognizedWords;
+              if (_recognizedText.isNotEmpty) {
+                _textController.forward();
+              }
+              if (val.hasConfidenceRating && val.confidence > 0) {
+                // Optionally handle confidence
+              }
             });
           }
         },
+        listenFor: const Duration(minutes: 1),
+        pauseFor: const Duration(seconds: 30),
+        partialResults: true,
         cancelOnError: true,
-        listenMode: stt.ListenMode.confirmation,
+        listenMode: stt.ListenMode.dictation,
       );
     } catch (e) {
       print('Error starting speech recognition: $e');
@@ -719,39 +710,45 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   }
 
   Widget _buildMicrophoneButton() {
-    return GestureDetector(
-      onTap: _toggle,
-      child: AnimatedBuilder(
-        animation: _pulseController,
-        builder: (context, child) {
-          final pulseValue = _running ? _pulseController.value : 0.0;
-          return Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: _running
-                    ? [accentPink, primaryPurple]
-                    : [accentPink, const Color(0xFFff8a5b)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: accentPink.withOpacity(0.5),
-                  blurRadius: 25,
-                  spreadRadius: 3 + (pulseValue * 10),
+    return AvatarGlow(
+      animate: _isListening,
+      glowColor: Theme.of(context).primaryColor,
+      duration: Duration(milliseconds: 1200),
+      repeat: true,
+      child: GestureDetector(
+        onTap: _toggle,
+        child: AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, child) {
+            final pulseValue = _running ? _pulseController.value : 0.0;
+            return Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: _running
+                      ? [accentPink, primaryPurple]
+                      : [accentPink, const Color(0xFFff8a5b)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
-            ),
-            child: Icon(
-              _running ? Icons.pause : Icons.mic,
-              color: Colors.white,
-              size: 32,
-            ),
-          );
-        },
+                boxShadow: [
+                  BoxShadow(
+                    color: accentPink.withOpacity(0.5),
+                    blurRadius: 25,
+                    spreadRadius: 3 + (pulseValue * 10),
+                  ),
+                ],
+              ),
+              child: Icon(
+                _running ? Icons.pause : Icons.mic,
+                color: Colors.white,
+                size: 32,
+              ),
+            );
+          },
+        ),
       ),
     );
   }
