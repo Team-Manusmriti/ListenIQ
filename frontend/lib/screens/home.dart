@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:listen_iq/screens/components/colors.dart';
 import 'dart:ui';
 import 'dart:math' as math;
-
 import 'package:listen_iq/screens/components/sidemenu.dart';
 import 'package:listen_iq/services/router_constants.dart';
 
@@ -68,7 +67,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
           // Blur Layer
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 150, sigmaY: 150),
-            child: Container(color: Colors.black.withOpacity(0.25)),
+            child: Container(color: black.withOpacity(0.25)),
           ),
 
           // Wave Transition behind app bar
@@ -162,11 +161,11 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
 
                   // Hero Text
                   const Text(
-                    'Create, explore,\nbe inspired',
+                    'Ask, recall,\nbe aware',
                     style: TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: white,
                       height: 1.1,
                     ),
                   ),
@@ -176,7 +175,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                   // Search Bar
                   GestureDetector(
                     onTap: () {
-                      // Handle search tap
+                      context.goNamed(RouteConstants.chatHome);
                     },
                     child: Container(
                       width: double.infinity,
@@ -185,10 +184,10 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                         vertical: 16,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: white.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.2),
+                          color: white.withOpacity(0.2),
                           width: 1,
                         ),
                       ),
@@ -232,17 +231,17 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                       scrollDirection: Axis.horizontal,
                       children: [
                         _buildAIToolCard(
-                          'AI text\nwriter',
+                          'AI audio\nservice',
                           Icons.edit_outlined,
                         ),
                         const SizedBox(width: 12),
                         _buildAIToolCard(
-                          'AI image\ngenerator',
+                          'AI video\nservice',
                           Icons.image_outlined,
                         ),
                         const SizedBox(width: 12),
                         _buildAIToolCard(
-                          'AI\ngenerator',
+                          'AI\nscreen recorder',
                           Icons.auto_awesome_outlined,
                         ),
                       ],
@@ -272,7 +271,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.white.withOpacity(0.8),
+                            color: white.withOpacity(0.8),
                           ),
                         ),
                       ),

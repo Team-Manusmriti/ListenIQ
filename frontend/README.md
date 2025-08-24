@@ -1,6 +1,6 @@
-# frontend
+# ListenIQ
 
-A new Flutter project.
+Your personal AI assistant.
 
 ## Getting Started
 

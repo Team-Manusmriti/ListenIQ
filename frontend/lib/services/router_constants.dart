@@ -6,7 +6,9 @@ class RouteConstants {
   // inner routes
   static String home = "home";
   static String profile = "profile";
+  static String chatHome = "chat_home";
   static String chat = "chat";
+  static String history = "history";
   static String chatDetail = "chatDetail";
   static String voiceAssistant = "voiceAssistant";
 

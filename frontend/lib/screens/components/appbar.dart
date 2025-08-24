@@ -108,10 +108,6 @@ class _AppHeaderState extends State<AppHeader>
         return Container(
           transform: Matrix4.rotationZ(_rotationAnimation.value),
           child: IconButton(
-            style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all(Colors.purple),
-              shape: MaterialStateProperty.all(const CircleBorder()),
-            ),
             icon: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               transitionBuilder: (Widget child, Animation<double> animation) {
@@ -137,27 +133,6 @@ class _AppHeaderState extends State<AppHeader>
           ),
         );
       },
-    );
-
-    // Profile icon - always visible on the right
-    Widget profileWidget = Container(
-      margin: const EdgeInsets.only(right: 16),
-      child: GestureDetector(
-        onTap: widget.onProfilePressed,
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [Colors.purple, Colors.purple.shade200],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Icon(CupertinoIcons.person, color: Colors.white, size: 18),
-        ),
-      ),
     );
 
     Widget titleContent;
@@ -228,7 +203,6 @@ class _AppHeaderState extends State<AppHeader>
       leading: leadingWidget,
       title: titleContent,
       actions: [
-        profileWidget,
         // Add any additional actions if provided
         if (widget.actions != null) ...widget.actions!,
       ],
