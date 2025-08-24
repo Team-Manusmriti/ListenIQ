@@ -3,8 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:listen_iq/screens/components/appbar.dart';
 import 'package:listen_iq/services/router_constants.dart';
 
-class History extends StatelessWidget {
-  const History({super.key});
+class HistoryScreen extends StatelessWidget {
+  const HistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

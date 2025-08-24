@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:listen_iq/screens/chat/chat.dart';
 import 'package:listen_iq/screens/chat/chat_home.dart';
+import 'package:listen_iq/screens/history.dart' show HistoryScreen;
 import 'package:listen_iq/screens/home.dart';
 import 'package:listen_iq/screens/voice_assistant/voice_assistant.dart';
 import 'package:listen_iq/services/router_constants.dart';
@@ -40,13 +41,13 @@ final GoRouter router = GoRouter(
           ],
         ),
 
-        // GoRoute(
-        //   path: '/scriptGenerator',
-        //   name: RouteConstants.scriptGenerator,
-        //   builder: (BuildContext context, GoRouterState state) {
-        //     return ScriptGeneratorScreen();
-        //   },
-        // ),
+        GoRoute(
+          path: '/history',
+          name: RouteConstants.history,
+          builder: (BuildContext context, GoRouterState state) {
+            return HistoryScreen();
+          },
+        ),
       ],
     ),
     // GoRoute(
