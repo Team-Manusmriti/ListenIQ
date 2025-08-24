@@ -75,7 +75,7 @@ class ChatMessageWidget extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(message.type == MessageType.text ? 12 : 8),
       decoration: BoxDecoration(
-        color: message.backgroundColor,
+        gradient: message.backgroundGradient,
         borderRadius: message.getBorderRadius(isFirst: isFirst, isLast: isLast),
         // chat bubble shadow
         boxShadow: [

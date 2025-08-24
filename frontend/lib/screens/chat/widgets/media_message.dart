@@ -15,7 +15,7 @@ class MediaMessage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: message.backgroundColor,
+          gradient: message.backgroundGradient,
           borderRadius: message.getBorderRadius(),
         ),
         child: Column(

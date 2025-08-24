@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:listen_iq/screens/chat/widgets/bot_search_bar.dart';
 import 'package:listen_iq/screens/components/appbar.dart';
-
 import '../../services/router_constants.dart';
 
 class ChatHome extends StatefulWidget {
@@ -20,8 +19,11 @@ class _ChatHomeState extends State<ChatHome> {
     return Scaffold(
       appBar: AppHeader(
         title: "ListenIQ",
-        onBackPressed: () {
-          context.goNamed(RouteConstants.home);
+        onMenuPressed: () {
+          final scaffoldState = Scaffold.of(context);
+          if (scaffoldState.hasDrawer) {
+            scaffoldState.openDrawer();
+          }
         },
         actions: [
           IconButton(

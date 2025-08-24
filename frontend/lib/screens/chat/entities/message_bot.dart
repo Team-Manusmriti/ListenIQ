@@ -20,18 +20,26 @@ extension MessageExtension on Message {
   Color get textColor {
     switch (sender) {
       case MessageSender.bot:
-        return Colors.black87;
+        return Colors.white;
       case MessageSender.user:
-        return Color(0xFF232729);
+        return Colors.white;
     }
   }
 
-  Color get backgroundColor {
+  Gradient? get backgroundGradient {
     switch (sender) {
-      case MessageSender.bot:
-        return Color(0xFFE3F2FD);
       case MessageSender.user:
-        return Color(0xFFBBDEFB);
+        return const LinearGradient(
+          colors: [Color(0xFFd4145a), Color(0xFF662d8c)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        );
+      case MessageSender.bot:
+        return const LinearGradient(
+          colors: [Colors.black, Colors.grey],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        );
     }
   }
 

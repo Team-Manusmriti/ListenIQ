@@ -14,6 +14,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   AnimationController? _waveController;
 
   @override
@@ -34,8 +35,8 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: transparent,
-      // backgroundColor: Colors.black.withOpacity(0.9),
+      key: _scaffoldKey,
+      drawer: const SideMenu(),
       body: Stack(
         children: [
           // Gradient Blobs
@@ -47,22 +48,6 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
               Color(0xFFfbb03b),
             ], 300),
           ),
-          // Positioned(
-          //   top: 200,
-          //   right: -100,
-          //   child: _buildBlob(const [
-          //     Color(0xFF662d8c),
-          //     Color(0xFFd4145a),
-          //   ], 250),
-          // ),
-          // Positioned(
-          //   bottom: -120,
-          //   left: 50,
-          //   child: _buildBlob(const [
-          //     Color(0xFFfbb03b),
-          //     Color(0xFF662d8c),
-          //   ], 280),
-          // ),
 
           // Blur Layer
           BackdropFilter(
@@ -105,30 +90,36 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      GestureDetector(
-                        onTap: () {
-                          // Open side menu
-                          // Scaffold.of(context).openDrawer();
-                        },
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(22),
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFFd4145a),
-                                Color(0xFF662d8c),
-                                Color(0xFFfbb03b),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
+                      Builder(
+                        builder: (context) => GestureDetector(
+                          onTap: () {
+                            final scaffoldState = Scaffold.of(context);
+                            if (scaffoldState.isDrawerOpen) {
+                              scaffoldState.closeDrawer();
+                            } else {
+                              scaffoldState.openDrawer();
+                            }
+                          },
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFFd4145a),
+                                  Color(0xFF662d8c),
+                                  Color(0xFFfbb03b),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
                             ),
-                          ),
-                          child: const Icon(
-                            Icons.menu,
-                            color: Colors.white,
-                            size: 24,
+                            child: const Icon(
+                              Icons.menu,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                         ),
                       ),
@@ -264,7 +255,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       GestureDetector(
                         onTap: () {
-                          // Handle see all tap
+                          context.goNamed(RouteConstants.history);
                         },
                         child: Text(
                           'See all',
@@ -353,7 +344,6 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Text at the top
             Text(
               title,
               style: const TextStyle(
@@ -363,9 +353,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                 height: 1.2,
               ),
             ),
-            // Spacer to push arrow to bottom
             const Spacer(),
-            // Arrow at bottom right
             Align(
               alignment: Alignment.bottomRight,
               child: Container(
@@ -466,19 +454,12 @@ class WavePainter extends CustomPainter {
 
     final path = Path();
 
-    // Start from top left
     path.moveTo(0, 0);
     path.lineTo(0, size.height * 0.6);
 
-    // Create multiple wave layers
     for (int i = 0; i < 1; i++) {
-      // waveHeight = changes the height of the wave
       final waveHeight = 20 + (i * 20);
-
-      // frequency = changes the speed of the wave
       final frequency = 0.02 + (i * 0.01);
-
-      // phaseShift = changes the starting position of the wave
       final phaseShift = animationValue * 2 * math.pi + (i * math.pi / 3);
 
       for (double x = 0; x <= size.width; x += 1) {
@@ -486,9 +467,6 @@ class WavePainter extends CustomPainter {
             size.height * 0.6 +
             waveHeight * math.sin((x * frequency) + phaseShift) +
             (waveHeight / 2) * math.cos((x * frequency * 2) + phaseShift);
-        // size.height = changes the vertical position of the wave
-        // math.sin = changes the wave's shape
-        // math.cos = changes the wave's shape
 
         if (x == 0) {
           path.lineTo(x, y);
@@ -498,7 +476,6 @@ class WavePainter extends CustomPainter {
       }
     }
 
-    // Close the path
     path.lineTo(size.width, 0);
     path.close();
 
