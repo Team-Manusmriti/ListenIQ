@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -22,25 +23,23 @@ class AudioIntensityService {
   Future<void> start() async {
     if (!await _ensurePermission()) return;
 
-    // Start recording (to an internal temp file if no path provided).
-    // You can tune encoder/bitrate if needed; not required for visualization.
+    // Get platform-safe temp directory
+    final tempDir = await getTemporaryDirectory();
+    final tempPath = '${tempDir.path}/temp.aac';
+
     await _record.start(
       const RecordConfig(
         encoder: AudioEncoder.aacLc,
         sampleRate: 44100,
         bitRate: 128000,
       ),
-      path: '/tmp/temp.aac',
+      path: tempPath, // safe location
     );
 
-    // Poll amplitude ~every 60ms (≈16–20 FPS UI updates are sufficient)
     _ampSub = _record
         .onAmplitudeChanged(const Duration(milliseconds: 60))
         .listen((amp) {
-          // amp.current is often in dBFS (negative up to 0). Normalize safely:
           final normalized = _normalizeDb(amp.current, minDb: -60, maxDb: 0);
-
-          // Exponential smoothing
           _smoothed = _smoothed + _alpha * (normalized - _smoothed);
           _levelCtrl.add(_smoothed);
         });

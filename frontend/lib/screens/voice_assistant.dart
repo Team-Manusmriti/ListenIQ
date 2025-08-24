@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:listen_iq/screens/components/voice_assistant/audio_assistant.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class VoiceAssistantScreen extends StatefulWidget {
   const VoiceAssistantScreen({super.key});
@@ -16,6 +17,8 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   late AnimationController _pulseController;
   late AnimationController _particleController;
   late AnimationController _statusController;
+  late AnimationController _meshController;
+  late AnimationController _textController;
 
   double _level = 0.0;
   final _service = AudioIntensityService();
@@ -24,42 +27,64 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   String _status =
       "Tell me about this year's top 5 trends for Instagram marketers";
 
+  // Speech-to-text functionality
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  bool _speechAvailable = false;
+  String _recognizedText = '';
+  List<String> _words = [];
+  String _lastFullText = '';
+  String _lastWords = '';
+
+  // Color scheme as specified
+  static const Color primaryPurple = Color(0xFF662d8c);
+  static const Color accentPink = Color(0xFFd4145a);
+  static const Color accentYellow = Color(0xFFfbb03b);
+
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
     _setupAudioListener();
+    _initializeSpeech();
   }
 
   void _initializeAnimations() {
     try {
-      // Wave animation for the flowing particles
       _waveController = AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 4000),
+        duration: const Duration(milliseconds: 3500),
       );
 
-      // Pulse animation for mic button
       _pulseController = AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 2000),
       );
 
-      // Particle flow animation
       _particleController = AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 6000),
+        duration: const Duration(milliseconds: 10000),
       );
 
-      // Status text animation
       _statusController = AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 800),
+        duration: const Duration(milliseconds: 600),
+      );
+
+      _meshController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 16000),
+      );
+
+      _textController = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 300),
       );
 
       // Start continuous animations
       _waveController.repeat();
       _particleController.repeat();
+      _meshController.repeat();
     } catch (e) {
       print('Error initializing animations: $e');
     }
@@ -67,25 +92,123 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
 
   void _setupAudioListener() {
     try {
-      _levelSubscription = _service.levelStream.listen(
-        (v) {
+      _levelSubscription = _service.levelStream
+          .distinct((a, b) => (a - b).abs() < 0.01) // ignore tiny changes
+          .listen(
+            (v) {
+              if (mounted) setState(() => _level = v);
+            },
+            onError: (error) {
+              print('Error in audio stream: $error');
+              if (mounted) {
+                setState(() {
+                  _level = 0.0;
+                  _running = false;
+                  _status = "Audio error occurred";
+                });
+              }
+            },
+          );
+    } catch (e) {
+      print('Error setting up audio listener: $e');
+    }
+  }
+
+  void _initializeSpeech() async {
+    try {
+      _speech = stt.SpeechToText();
+      _speechAvailable = await _speech.initialize(
+        onStatus: (status) {
+          print('Speech status: $status');
           if (mounted) {
-            setState(() => _level = v);
+            setState(() {
+              _isListening = status == 'listening';
+            });
           }
         },
         onError: (error) {
-          print('Error in audio stream: $error');
+          print('Speech error: $error');
           if (mounted) {
             setState(() {
-              _level = 0.0;
-              _running = false;
-              _status = "Audio error occurred";
+              _isListening = false;
+              _status = "Speech recognition error";
             });
           }
         },
       );
+
+      if (!_speechAvailable) {
+        print('Speech recognition not available');
+      }
     } catch (e) {
-      print('Error setting up audio listener: $e');
+      print('Error initializing speech: $e');
+      _speechAvailable = false;
+    }
+  }
+
+  void _startListening() async {
+    if (!_speechAvailable) return;
+
+    try {
+      setState(() {
+        _recognizedText = '';
+        _lastWords = '';
+      });
+
+      await _speech.listen(
+        onResult: (result) {
+          if (mounted) {
+            final newText = result.recognizedWords;
+            final newWords = newText.split(" ");
+
+            // If new words were added, animate them
+            if (newWords.length > _words.length) {
+              final newWord = newWords.last;
+              setState(() {
+                _words.add(newWord);
+              });
+              _textController.forward(from: 0); // animate each new word
+            }
+
+            _lastFullText = newText;
+          }
+        },
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 3),
+        partialResults: true,
+        localeId: "en_US",
+        onSoundLevelChange: (level) {
+          // This provides additional audio level feedback
+          if (mounted && _isListening) {
+            setState(() {
+              _level = math.max(_level, level / 100.0);
+            });
+          }
+        },
+        cancelOnError: true,
+        listenMode: stt.ListenMode.confirmation,
+      );
+    } catch (e) {
+      print('Error starting speech recognition: $e');
+      if (mounted) {
+        setState(() {
+          _isListening = false;
+          _status = "Failed to start speech recognition";
+        });
+      }
+    }
+  }
+
+  void _stopListening() async {
+    try {
+      await _speech.stop();
+      if (mounted) {
+        setState(() {
+          _isListening = false;
+        });
+      }
+    } catch (e) {
+      print('Error stopping speech recognition: $e');
     }
   }
 
@@ -104,8 +227,12 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       });
 
       if (_running) {
+        // Stop both audio recording and speech recognition
         await _service.stop();
+        _stopListening();
         _pulseController.stop();
+        _textController.reverse();
+
         if (mounted) {
           setState(() {
             _status =
@@ -114,8 +241,13 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
           });
         }
       } else {
+        // Start both audio recording and speech recognition
         await _service.start();
+        if (_speechAvailable) {
+          _startListening();
+        }
         _pulseController.repeat();
+
         if (mounted) {
           setState(() {
             _status = "Listening... Tap to stop";
@@ -135,15 +267,27 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
     }
   }
 
+  void _clearText() {
+    setState(() {
+      _recognizedText = '';
+      _lastWords = '';
+      _words.clear();
+    });
+    _textController.reverse();
+  }
+
   @override
   void dispose() {
     try {
       _levelSubscription?.cancel();
       _service.dispose();
+      _speech.stop();
       _waveController.dispose();
       _pulseController.dispose();
       _particleController.dispose();
       _statusController.dispose();
+      _meshController.dispose();
+      _textController.dispose();
     } catch (e) {
       print('Error disposing resources: $e');
     }
@@ -158,44 +302,30 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.center,
-            radius: 1.2 + (_level * 0.3),
+            radius: 1.5 + (_level * 0.4),
             colors: [
-              Color.lerp(
-                const Color(0xFF2d1b69),
-                const Color(0xFF4c2a85),
-                _level,
-              )!,
-              Color.lerp(
-                const Color(0xFF16213e),
-                const Color(0xFF2d1b69),
-                _level * 0.7,
-              )!,
+              primaryPurple.withOpacity(0.6 + _level * 0.3),
+              primaryPurple.withOpacity(0.3 + _level * 0.2),
+              const Color(0xFF1a0d2e),
               Colors.black,
             ],
-            stops: [0.0, 0.6, 1.0],
+            stops: const [0.0, 0.4, 0.7, 1.0],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // Header
               _buildHeader(),
-
               const Spacer(flex: 2),
-
-              // Main visualization area
               _buildMainVisualization(),
-
               const Spacer(flex: 1),
-
-              // Status text
               _buildStatusText(),
-
+              if (_recognizedText.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                _buildRecognizedText(),
+              ],
               const Spacer(flex: 2),
-
-              // Bottom controls
               _buildBottomControls(),
-
               const SizedBox(height: 40),
             ],
           ),
@@ -209,7 +339,6 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       padding: const EdgeInsets.all(20.0),
       child: Row(
         children: [
-          // Back button
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -222,10 +351,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               size: 16,
             ),
           ),
-
           const SizedBox(width: 16),
-
-          // App icon with gradient
           AnimatedContainer(
             duration: Duration(milliseconds: _running ? 100 : 300),
             width: 32 + (_running ? _level * 4 : 0),
@@ -235,27 +361,21 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               gradient: LinearGradient(
                 colors: _running
                     ? [
+                        Color.lerp(primaryPurple, accentPink, _level)!,
                         Color.lerp(
-                          const Color(0xFF8e2de2),
-                          const Color(0xFFa855f7),
-                          _level,
-                        )!,
-                        Color.lerp(
-                          const Color(0xFF4a00e0),
-                          const Color(0xFF7c3aed),
-                          _level,
+                          primaryPurple.withOpacity(0.8),
+                          accentYellow,
+                          _level * 0.5,
                         )!,
                       ]
-                    : [const Color(0xFF8e2de2), const Color(0xFF4a00e0)],
+                    : [primaryPurple, primaryPurple.withOpacity(0.8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               boxShadow: _running && _level > 0.3
                   ? [
                       BoxShadow(
-                        color: const Color(
-                          0xFF8e2de2,
-                        ).withOpacity(_level * 0.6),
+                        color: accentPink.withOpacity(_level * 0.6),
                         blurRadius: 8 + (_level * 4),
                         spreadRadius: 1,
                       ),
@@ -268,11 +388,8 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               size: 18 + (_running ? _level * 2 : 0),
             ),
           ),
-
           const SizedBox(width: 12),
-
-          // Title and subtitle
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -284,19 +401,43 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(
-                  "Marketing in 2025",
-                  style: TextStyle(
-                    color: Colors.white60,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      "Marketing in 2025",
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    if (_isListening) ...[
+                      const SizedBox(width: 8),
+                      AnimatedBuilder(
+                        animation: _pulseController,
+                        builder: (context, child) {
+                          return Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: accentPink.withOpacity(
+                                0.6 +
+                                    0.4 *
+                                        math.sin(
+                                          _pulseController.value * 2 * math.pi,
+                                        ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
           ),
-
-          // Menu button
           Container(
             padding: const EdgeInsets.all(8),
             child: const Icon(Icons.more_vert, color: Colors.white70, size: 20),
@@ -308,22 +449,28 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
 
   Widget _buildMainVisualization() {
     return AnimatedContainer(
-      duration: Duration(milliseconds: 200),
-      height: 320 + (_running ? _level * 60 : 0),
-      transform: Matrix4.identity()..scale(1.0 + (_running ? _level * 0.1 : 0)),
+      duration: const Duration(milliseconds: 200),
+      height: 320 + (_running ? _level * 80 : 0),
+      transform: Matrix4.identity()
+        ..scale(1.0 + (_running ? _level * 0.15 : 0)),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Background glow effect
-          if (_running && _level > 0.2)
+          // Enhanced background glow
+          if (_running && _level > 0.1)
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF8e2de2).withOpacity(_level * 0.3),
-                      blurRadius: 100 + (_level * 50),
+                      color: accentPink.withOpacity(_level * 0.4),
+                      blurRadius: 120 + (_level * 80),
+                      spreadRadius: 30 + (_level * 40),
+                    ),
+                    BoxShadow(
+                      color: primaryPurple.withOpacity(_level * 0.3),
+                      blurRadius: 80 + (_level * 60),
                       spreadRadius: 20 + (_level * 30),
                     ),
                   ],
@@ -331,18 +478,20 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               ),
             ),
 
-          // Flowing particle animation
-          Positioned.fill(
+          // Main 3D Mesh Animation
+          RepaintBoundary(
             child: AnimatedBuilder(
               animation: Listenable.merge([
                 _waveController,
                 _particleController,
+                _meshController,
               ]),
               builder: (context, child) {
                 return CustomPaint(
-                  painter: FlowingParticlesPainter(
+                  painter: Optimized3DMeshPainter(
                     waveTime: _waveController.value,
                     particleTime: _particleController.value,
+                    meshTime: _meshController.value,
                     level: _level,
                     isActive: _running,
                   ),
@@ -351,30 +500,33 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
             ),
           ),
 
-          // Responsive pulsing rings
+          // Responsive outer rings
           if (_running)
             ...List.generate(
-              3,
+              2,
               (index) => AnimatedBuilder(
                 animation: _pulseController,
                 builder: (context, child) {
                   final ringOpacity =
-                      (_level * 0.4) *
-                      (0.8 - index * 0.2) *
+                      (_level * 0.5) *
+                      (0.7 - index * 0.2) *
                       (0.5 +
                           0.5 *
                               math.sin(
-                                _pulseController.value * 2 * math.pi + index,
+                                _pulseController.value * 2 * math.pi +
+                                    index * 0.5,
                               ));
 
                   return Container(
-                    width: 120 + (index * 40) + (_level * 80),
-                    height: 120 + (index * 40) + (_level * 80),
+                    width: 180 + (index * 60) + (_level * 100),
+                    height: 180 + (index * 60) + (_level * 100),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFF8e2de2).withOpacity(ringOpacity),
-                        width: 2,
+                        color: index == 0
+                            ? accentPink.withOpacity(ringOpacity)
+                            : accentYellow.withOpacity(ringOpacity * 0.7),
+                        width: 1.5,
                       ),
                     ),
                   );
@@ -395,28 +547,26 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
           return Transform.scale(
             scale:
                 1.0 +
-                (_statusController.value * 0.05) +
+                (_statusController.value * 0.03) +
                 (_running ? _level * 0.02 : 0),
             child: AnimatedDefaultTextStyle(
-              duration: Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 300),
               style: TextStyle(
                 color: _running
                     ? Color.lerp(
                         Colors.white.withOpacity(0.9),
-                        const Color(0xFFa855f7),
-                        _level * 0.3,
+                        accentPink,
+                        _level * 0.4,
                       )
                     : Colors.white.withOpacity(0.9),
-                fontSize: 24 + (_running ? _level * 2 : 0),
+                fontSize: 24 + (_running ? _level * 3 : 0),
                 fontWeight: FontWeight.w500,
                 height: 1.3,
-                shadows: _running && _level > 0.4
+                shadows: _running && _level > 0.3
                     ? [
                         Shadow(
-                          color: const Color(
-                            0xFF8e2de2,
-                          ).withOpacity(_level * 0.6),
-                          blurRadius: 8,
+                          color: accentPink.withOpacity(_level * 0.8),
+                          blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
                       ]
@@ -430,27 +580,114 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
     );
   }
 
+  Widget _buildRecognizedText() {
+    return AnimatedBuilder(
+      animation: _textController,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, (1 - _textController.value) * 20),
+          child: Opacity(
+            opacity: _textController.value,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: accentPink.withOpacity(0.3),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentPink.withOpacity(0.1),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.record_voice_over,
+                        color: accentPink,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Recognized Speech",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: _clearText,
+                        child: Icon(
+                          Icons.clear,
+                          color: Colors.white54,
+                          size: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    children: _words.map((word) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 2,
+                          vertical: 4,
+                        ),
+                        child: AnimatedOpacity(
+                          opacity: 1.0,
+                          duration: const Duration(milliseconds: 250),
+                          child: Text(
+                            word,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildBottomControls() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Reset/Undo button
           _buildControlButton(
             icon: Icons.refresh,
             onTap: () {
               setState(() {
                 _status =
                     "Tell me about this year's top 5 trends for Instagram marketers";
+                _recognizedText = '';
+                _lastWords = '';
               });
+              _textController.reverse();
             },
           ),
-
-          // Main microphone button
           _buildMicrophoneButton(),
-
-          // Close button
           _buildControlButton(
             icon: Icons.close,
             onTap: () {
@@ -495,16 +732,16 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: _running
-                    ? [const Color(0xFFff6b9d), const Color(0xFFc44569)]
-                    : [const Color(0xFFff6b9d), const Color(0xFFffa500)],
+                    ? [accentPink, primaryPurple]
+                    : [accentPink, const Color(0xFFff8a5b)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFff6b9d).withOpacity(0.4),
-                  blurRadius: 20,
-                  spreadRadius: 2 + (pulseValue * 8),
+                  color: accentPink.withOpacity(0.5),
+                  blurRadius: 25,
+                  spreadRadius: 3 + (pulseValue * 10),
                 ),
               ],
             ),
@@ -520,16 +757,24 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   }
 }
 
-// Custom painter for flowing particles effect
-class FlowingParticlesPainter extends CustomPainter {
+// Enhanced 3D Mesh Painter for sophisticated visualization
+class Optimized3DMeshPainter extends CustomPainter {
   final double waveTime;
   final double particleTime;
+  final double meshTime;
   final double level;
   final bool isActive;
 
-  FlowingParticlesPainter({
+  // Cache paint objects (avoid recreating per frame)
+  final Paint meshPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.0;
+  final Paint particlePaint = Paint()..style = PaintingStyle.fill;
+
+  Optimized3DMeshPainter({
     required this.waveTime,
     required this.particleTime,
+    required this.meshTime,
     required this.level,
     required this.isActive,
   });
@@ -538,104 +783,132 @@ class FlowingParticlesPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
 
-    // Create the main flowing shape
-    _drawFlowingShape(canvas, size, center);
+    _draw3DMesh(canvas, size, center);
 
-    // Add particle effects when active
     if (isActive) {
-      _drawParticleTrails(canvas, size, center);
+      _drawParticles(canvas, center);
     }
   }
 
-  void _drawFlowingShape(Canvas canvas, Size size, Offset center) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
+  void _draw3DMesh(Canvas canvas, Size size, Offset center) {
+    const gridSize = 10; // reduced from 15
+    const layers = 2; // reduced from 3
 
-    // Create multiple flowing layers
-    for (int layer = 0; layer < 3; layer++) {
-      final path = Path();
-      final radius = 60.0 + (layer * 25) + (level * 40);
-      final points = <Offset>[];
+    for (int layer = 0; layer < layers; layer++) {
+      final layerDepth = layer / layers;
+      final layerScale = 0.6 + layerDepth * 0.4 + level * 0.2;
+      final layerOpacity = 0.8 - layerDepth * 0.3;
 
-      // Generate flowing shape points
-      const pointCount = 80;
-      for (int i = 0; i < pointCount; i++) {
-        final angle = (i / pointCount) * 2 * math.pi;
+      final points = <List<Offset>>[];
 
-        // Create flowing distortion
-        final distortion1 = math.sin(angle * 3 + waveTime * 2 * math.pi) * 15;
-        final distortion2 = math.sin(angle * 5 + waveTime * 1.5 * math.pi) * 8;
-        final distortion3 = math.sin(angle * 7 + particleTime * math.pi) * 5;
+      for (int i = 0; i <= gridSize; i++) {
+        final row = <Offset>[];
+        for (int j = 0; j <= gridSize; j++) {
+          final x = (i / gridSize - 0.5) * 180 * layerScale;
+          final y = (j / gridSize - 0.5) * 180 * layerScale;
 
-        final currentRadius = radius + distortion1 + distortion2 + distortion3;
+          final waveX =
+              math.sin((i + j) * 0.3 + meshTime * 2 * math.pi) * 10 * level;
+          final waveY =
+              math.cos((i - j) * 0.4 + meshTime * 1.5 * math.pi) * 8 * level;
+          final waveZ =
+              math.sin(i * 0.2 + j * 0.3 + meshTime * math.pi) * 6 * level;
 
-        final x = center.dx + math.cos(angle) * currentRadius;
-        final y = center.dy + math.sin(angle) * currentRadius;
+          final projectedX = center.dx + x + waveX + waveZ * 0.4;
+          final projectedY = center.dy + y + waveY + waveZ * 0.25;
 
-        points.add(Offset(x, y));
+          row.add(Offset(projectedX, projectedY));
+        }
+        points.add(row);
       }
 
-      // Create smooth path through points
-      if (points.isNotEmpty) {
-        path.moveTo(points.first.dx, points.first.dy);
+      final baseOpacity = layerOpacity * (0.4 + level * 0.6);
 
+      // Horizontal lines
+      for (int i = 0; i < points.length; i++) {
+        final path = Path()..addPolygon(points[i], false);
+
+        final hue = (meshTime * 25 + layer * 50 + i * 4) % 360;
+        meshPaint.color = HSVColor.fromAHSV(
+          baseOpacity,
+          hue,
+          0.6 + level * 0.3,
+          0.8,
+        ).toColor();
+
+        canvas.drawPath(path, meshPaint);
+      }
+
+      // Vertical lines
+      for (int j = 0; j <= gridSize; j++) {
+        final path = Path();
         for (int i = 0; i < points.length; i++) {
-          final current = points[i];
-          final next = points[(i + 1) % points.length];
-
-          // Use quadratic curves for smoothness
-          final controlPoint = Offset(
-            (current.dx + next.dx) / 2,
-            (current.dy + next.dy) / 2,
-          );
-
-          path.quadraticBezierTo(
-            controlPoint.dx,
-            controlPoint.dy,
-            next.dx,
-            next.dy,
-          );
+          if (i == 0) {
+            path.moveTo(points[i][j].dx, points[i][j].dy);
+          } else {
+            path.lineTo(points[i][j].dx, points[i][j].dy);
+          }
         }
 
-        path.close();
+        final hue = (meshTime * 25 + j * 6 + layer * 50 + 120) % 360;
+        meshPaint.color = HSVColor.fromAHSV(
+          baseOpacity,
+          hue,
+          0.6 + level * 0.4,
+          0.7,
+        ).toColor();
+
+        canvas.drawPath(path, meshPaint);
       }
-
-      // Set color with gradient effect
-      final opacity = math.max(0.0, 0.8 - layer * 0.2);
-      final hue = (waveTime * 60 + layer * 30) % 360;
-
-      paint.color = HSVColor.fromAHSV(opacity, hue, 0.8, 0.9).toColor();
-
-      canvas.drawPath(path, paint);
     }
   }
 
-  void _drawParticleTrails(Canvas canvas, Size size, Offset center) {
-    final paint = Paint()..style = PaintingStyle.fill;
+  void _drawParticles(Canvas canvas, Offset center) {
+    const particleCount = 12; // reduced from 20
+    const trailLength = 3; // reduced from 5
 
-    // Draw flowing particle trails
-    for (int i = 0; i < 12; i++) {
-      final angle = (i / 12) * 2 * math.pi + particleTime * math.pi;
-      final distance = 80 + math.sin(particleTime * 2 * math.pi + i) * 30;
+    final colors = [
+      const Color(0xFFd4145a), // Pink
+      const Color(0xFF662d8c), // Purple
+      const Color(0xFFfbb03b), // Yellow
+    ];
+
+    for (int i = 0; i < particleCount; i++) {
+      final angle = (i / particleCount) * 2 * math.pi + particleTime * math.pi;
+      final distance =
+          70 + math.sin(particleTime * 2 * math.pi + i) * 30 * level;
 
       final x = center.dx + math.cos(angle) * distance;
       final y = center.dy + math.sin(angle) * distance;
 
-      final particleOpacity =
-          (0.3 + level * 0.4) *
-          (0.5 + 0.5 * math.sin(particleTime * 4 * math.pi + i));
+      final particleOpacity = (0.3 + level * 0.5);
 
-      paint.color = const Color(0xFFff6b9d).withOpacity(particleOpacity);
+      particlePaint.color = colors[i % 3].withOpacity(particleOpacity);
+      canvas.drawCircle(Offset(x, y), 2 + level * 3, particlePaint);
 
-      canvas.drawCircle(Offset(x, y), 2 + level * 3, paint);
+      // Shorter trail
+      for (int t = 1; t <= trailLength; t++) {
+        final trailAngle = angle - (t * 0.12);
+        final trailX = center.dx + math.cos(trailAngle) * distance;
+        final trailY = center.dy + math.sin(trailAngle) * distance;
+
+        particlePaint.color = colors[i % 3].withOpacity(
+          particleOpacity * (1 - t / trailLength),
+        );
+        canvas.drawCircle(
+          Offset(trailX, trailY),
+          (2 + level * 3) * (1 - t / trailLength * 0.6),
+          particlePaint,
+        );
+      }
     }
   }
 
   @override
-  bool shouldRepaint(FlowingParticlesPainter oldDelegate) =>
+  bool shouldRepaint(covariant Optimized3DMeshPainter oldDelegate) =>
       oldDelegate.waveTime != waveTime ||
       oldDelegate.particleTime != particleTime ||
+      oldDelegate.meshTime != meshTime ||
       oldDelegate.level != level ||
       oldDelegate.isActive != isActive;
 }
