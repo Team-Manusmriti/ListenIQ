@@ -11,6 +11,7 @@ class HistoryScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppHeader(
         title: 'ListenIQ',
+        isInChat: false,
         onBackPressed: () => Navigator.pop(context),
       ),
       body: SafeArea(

@@ -57,9 +57,11 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: Color(0xFFF8FAFC),
+      backgroundColor: Colors.transparent,
       appBar: AppHeader(
         title: "ListenIQ",
+        chatTitle: "Health Assistant",
+        isInChat: true,
         onBackPressed: () => Navigator.pop(context),
       ),
       body: SafeArea(

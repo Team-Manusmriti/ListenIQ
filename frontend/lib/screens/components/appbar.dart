@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class AppHeader extends StatefulWidget implements PreferredSizeWidget {
   final String title;
@@ -56,85 +55,25 @@ class AppHeader extends StatefulWidget implements PreferredSizeWidget {
   }
 }
 
-class _AppHeaderState extends State<AppHeader>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _rotationAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-
-    if (widget.isInChat) {
-      _animationController.forward();
-    }
-  }
-
-  @override
-  void didUpdateWidget(AppHeader oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isInChat != oldWidget.isInChat) {
-      if (widget.isInChat) {
-        _animationController.forward();
-      } else {
-        _animationController.reverse();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
+class _AppHeaderState extends State<AppHeader> {
   @override
   Widget build(BuildContext context) {
-    // Animated leading widget that changes between menu and back icon
-    Widget leadingWidget = AnimatedBuilder(
-      animation: _rotationAnimation,
-      builder: (context, child) {
-        return Container(
-          transform: Matrix4.rotationZ(_rotationAnimation.value),
-          child: IconButton(
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return ScaleTransition(scale: animation, child: child);
-              },
-              child: widget.isInChat
-                  ? Icon(
-                      CupertinoIcons.back,
-                      key: const ValueKey('back'),
-                      color: Colors.white,
-                      size: 24,
-                    )
-                  : Icon(
-                      CupertinoIcons.line_horizontal_3,
-                      key: const ValueKey('menu'),
-                      color: Colors.white,
-                      size: 24,
-                    ),
-            ),
-            onPressed: widget.isInChat
-                ? widget.onBackPressed
-                : widget.onMenuPressed,
-          ),
-        );
-      },
+    // Debug print to verify isInChat value
+    print('AppHeader isInChat: ${widget.isInChat}');
+
+    // Simplified leading widget without animations for debugging
+    Widget leadingWidget = IconButton(
+      icon: Icon(
+        widget.isInChat
+            ? CupertinoIcons.back
+            : CupertinoIcons.line_horizontal_3,
+        color: Colors.white,
+        size: 24,
+      ),
+      onPressed: widget.isInChat ? widget.onBackPressed : widget.onMenuPressed,
     );
 
+    // Simplified title without animations for debugging
     Widget titleContent;
     if (widget.searchBar != null) {
       titleContent = Padding(
@@ -145,52 +84,14 @@ class _AppHeaderState extends State<AppHeader>
     } else if (widget.titleWidget != null) {
       titleContent = widget.titleWidget!;
     } else {
-      // Animated title switching between app title and chat title
-      titleContent = AnimatedBuilder(
-        animation: _fadeAnimation,
-        builder: (context, child) {
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              // Default app title
-              AnimatedOpacity(
-                opacity: widget.isInChat ? 0.0 : 1.0,
-                duration: const Duration(milliseconds: 200),
-                child: Transform.translate(
-                  offset: Offset(0, widget.isInChat ? -10 : 0),
-                  child: Text(
-                    widget.title,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: widget.foregroundColor ?? Colors.white,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ),
-              ),
-              // Chat title
-              AnimatedOpacity(
-                opacity: widget.isInChat ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: Transform.translate(
-                  offset: Offset(0, widget.isInChat ? 0 : 10),
-                  child: Text(
-                    widget.chatTitle ?? '',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: widget.foregroundColor ?? Colors.white,
-                      letterSpacing: -0.3,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+      titleContent = Text(
+        widget.isInChat ? (widget.chatTitle ?? 'Chat') : widget.title,
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: widget.foregroundColor ?? Colors.white,
+          letterSpacing: -0.5,
+        ),
       );
     }
 
@@ -202,10 +103,7 @@ class _AppHeaderState extends State<AppHeader>
       leadingWidth: 48,
       leading: leadingWidget,
       title: titleContent,
-      actions: [
-        // Add any additional actions if provided
-        if (widget.actions != null) ...widget.actions!,
-      ],
+      actions: [if (widget.actions != null) ...widget.actions!],
       toolbarHeight: widget.height,
       automaticallyImplyLeading: false,
       shape: widget.elevation > 0
@@ -224,10 +122,10 @@ class _AppHeaderState extends State<AppHeader>
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: widget.isTransparent
             ? Brightness.light
-            : Brightness.light, // Changed to light for dark theme
+            : Brightness.light,
         statusBarBrightness: widget.isTransparent
             ? Brightness.dark
-            : Brightness.dark, // Changed for dark theme
+            : Brightness.dark,
       ),
       bottom: widget.bottom,
     );

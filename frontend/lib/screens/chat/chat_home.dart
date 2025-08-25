@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:listen_iq/screens/chat/widgets/bot_search_bar.dart';
 import 'package:listen_iq/screens/components/appbar.dart';
+import 'package:listen_iq/screens/components/sidemenu.dart';
 import '../../services/router_constants.dart';
 
 class ChatHome extends StatefulWidget {
@@ -12,22 +13,25 @@ class ChatHome extends StatefulWidget {
 }
 
 class _ChatHomeState extends State<ChatHome> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey<BotSearchBarState> _searchBarKey =
       GlobalKey<BotSearchBarState>();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: const SideMenu(),
       appBar: AppHeader(
         title: "ListenIQ",
         onMenuPressed: () {
-          final scaffoldState = Scaffold.of(context);
-          if (scaffoldState.hasDrawer) {
-            scaffoldState.openDrawer();
+          final scaffoldState = _scaffoldKey.currentState;
+          if (scaffoldState?.hasDrawer == true) {
+            scaffoldState!.openDrawer();
           }
         },
         actions: [
           IconButton(
-            icon: const Icon(Icons.chat_rounded),
+            icon: const Icon(Icons.history),
             onPressed: () {
               context.pushNamed(RouteConstants.history);
             },

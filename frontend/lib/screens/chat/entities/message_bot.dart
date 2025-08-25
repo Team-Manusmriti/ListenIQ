@@ -36,7 +36,7 @@ extension MessageExtension on Message {
         );
       case MessageSender.bot:
         return const LinearGradient(
-          colors: [Colors.black, Colors.grey],
+          colors: [Colors.black, Color(0xFF424242)],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         );
