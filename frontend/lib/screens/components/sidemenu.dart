@@ -18,6 +18,24 @@ class _SideMenuState extends ConsumerState<SideMenu> {
     super.initState();
   }
 
+  // Helper method to close drawer and navigate
+  void _navigateAndClose(String routeName) {
+    // Close the drawer
+    Navigator.of(context).pop();
+
+    // Add a small delay to ensure drawer is fully closed
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        context.goNamed(routeName);
+      }
+    });
+  }
+
+  // Helper method to just close drawer without navigation
+  void _closeDrawer() {
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -76,8 +94,9 @@ class _SideMenuState extends ConsumerState<SideMenu> {
           label: 'Video',
           color: const Color(0xFFEC4899),
           onTap: () {
-            Navigator.of(context).pop();
-            // Navigate to video service
+            _closeDrawer();
+            // Navigate to video service when route is available
+            // _navigateAndClose(RouteConstants.videoService);
           },
         ),
         _buildMenuItem(
@@ -85,8 +104,9 @@ class _SideMenuState extends ConsumerState<SideMenu> {
           label: 'Screen Recording',
           color: const Color(0xFF8B5CF6),
           onTap: () {
-            Navigator.of(context).pop();
-            // Navigate to screen recording service
+            _closeDrawer();
+            // Navigate to screen recording service when route is available
+            // _navigateAndClose(RouteConstants.screenRecording);
           },
         ),
         _buildMenuItem(
@@ -94,8 +114,9 @@ class _SideMenuState extends ConsumerState<SideMenu> {
           label: 'Audio',
           color: const Color(0xFFF59E0B),
           onTap: () {
-            Navigator.of(context).pop();
-            // Navigate to audio service
+            _closeDrawer();
+            // Navigate to audio service when route is available
+            // _navigateAndClose(RouteConstants.audioService);
           },
         ),
       ],
@@ -112,16 +133,15 @@ class _SideMenuState extends ConsumerState<SideMenu> {
           icon: Icons.settings,
           label: 'Settings & Privacy',
           onTap: () {
-            Navigator.of(context).pop();
-            context.goNamed(RouteConstants.profileSettings);
+            _navigateAndClose(RouteConstants.profileSettings);
           },
         ),
         _buildMenuItem(
           icon: Icons.report_problem,
           label: 'Report a problem',
           onTap: () {
-            Navigator.of(context).pop();
-            // Handle report problem
+            _closeDrawer();
+            // Handle report problem functionality
           },
         ),
       ],
@@ -138,15 +158,16 @@ class _SideMenuState extends ConsumerState<SideMenu> {
           icon: Icons.help,
           label: 'Help & Support',
           onTap: () {
-            Navigator.of(context).pop();
-            // Navigate to help & support
+            _closeDrawer();
+            // Navigate to help & support when route is available
+            // _navigateAndClose(RouteConstants.helpSupport);
           },
         ),
         _buildMenuItem(
           icon: Icons.language,
           label: 'Language',
           onTap: () {
-            Navigator.of(context).pop();
+            _closeDrawer();
             // Handle language selection
           },
         ),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 import 'package:listen_iq/screens/voice_assistant/audio_assistant.dart';
+import 'package:listen_iq/screens/voice_assistant/components/3d_mesh.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class VoiceAssistantScreen extends StatefulWidget {
@@ -25,17 +26,24 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   final _service = AudioIntensityService();
   bool _running = false;
   StreamSubscription<double>? _levelSubscription;
-  String _status =
-      "Tell me about this year's top 5 trends for Instagram marketers";
+  String _status = "Ask me anything";
 
-  // Speech-to-text functionality
+  // Enhanced Speech-to-text functionality
   late stt.SpeechToText _speech;
   bool _isListening = false;
   bool _speechAvailable = false;
+  String _transcribedText = "Press mic & start speaking...";
+  double _confidence = 1.0;
   String _recognizedText = '';
   List<String> _words = [];
   String _lastFullText = '';
   String _lastWords = '';
+
+  // Speech recognition debugging
+  String _debugInfo = '';
+  List<stt.LocaleName> _localeNames = [];
+  String _currentLocaleId = '';
+  Timer? _speechTimeout;
 
   // Color scheme as specified
   static const Color primaryPurple = Color(0xFF662d8c);
@@ -94,7 +102,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   void _setupAudioListener() {
     try {
       _levelSubscription = _service.levelStream
-          .distinct((a, b) => (a - b).abs() < 0.01) // ignore tiny changes
+          .distinct((a, b) => (a - b).abs() < 0.01)
           .listen(
             (v) {
               if (mounted) setState(() => _level = v);
@@ -118,89 +126,215 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   void _initializeSpeech() async {
     try {
       _speech = stt.SpeechToText();
+
+      // Initialize with enhanced error handling
       _speechAvailable = await _speech.initialize(
         onStatus: (status) {
           print('Speech status: $status');
+          setState(() {
+            _debugInfo = 'Status: $status';
+          });
+
           if (mounted) {
             setState(() {
               _isListening = status == 'listening';
+
+              // Handle different status states
+              switch (status) {
+                case 'listening':
+                  _status = "Listening... Speak now";
+                  break;
+                case 'notListening':
+                  if (_running) {
+                    _status = "Processing...";
+                  }
+                  break;
+                case 'done':
+                  _status = "Speech completed";
+                  break;
+              }
             });
           }
         },
         onError: (error) {
-          print('Speech error: $error');
+          print('Speech error: ${error.errorMsg} - ${error.permanent}');
+          setState(() {
+            _debugInfo = 'Error: ${error.errorMsg}';
+          });
+
           if (mounted) {
             setState(() {
               _isListening = false;
-              _status = "Speech recognition error";
+              _status = "Speech error: ${error.errorMsg}";
+            });
+          }
+
+          // If error is permanent, try to reinitialize
+          if (error.permanent) {
+            Future.delayed(Duration(seconds: 2), () {
+              _reinitializeSpeech();
             });
           }
         },
       );
 
-      if (!_speechAvailable) {
+      if (_speechAvailable) {
+        // Get available locales
+        _localeNames = await _speech.locales();
+
+        // Try to find English locale or use system default
+        var systemLocale = await _speech.systemLocale();
+        if (systemLocale != null) {
+          _currentLocaleId = systemLocale.localeId;
+        } else {
+          _currentLocaleId = 'en_IN'; // fallback
+        }
+
+        print('Speech initialized successfully');
+        print(
+          'Available locales: ${_localeNames.map((l) => l.localeId).join(', ')}',
+        );
+        print('Using locale: $_currentLocaleId');
+
+        setState(() {
+          _debugInfo = 'Ready - Locale: $_currentLocaleId';
+        });
+      } else {
         print('Speech recognition not available');
+        setState(() {
+          _debugInfo = 'Speech recognition not available';
+          _status = "Speech recognition not supported";
+        });
       }
     } catch (e) {
       print('Error initializing speech: $e');
-      _speechAvailable = false;
+      setState(() {
+        _speechAvailable = false;
+        _debugInfo = 'Init error: $e';
+        _status = "Speech initialization failed";
+      });
     }
   }
 
-  void _startListening() async {
-    if (!_speechAvailable) return;
+  void _reinitializeSpeech() async {
+    if (!mounted) return;
+
+    print('Reinitializing speech recognition...');
+    setState(() {
+      _status = "Reinitializing speech...";
+    });
+
+    try {
+      await _speech.stop();
+      await Future.delayed(Duration(milliseconds: 500));
+      _initializeSpeech();
+    } catch (e) {
+      print('Error reinitializing speech: $e');
+    }
+  }
+
+  Future<void> _startListening() async {
+    if (!_speechAvailable) {
+      setState(() {
+        _isListening = false;
+        _status = "Speech recognition not available";
+      });
+      return;
+    }
 
     try {
       setState(() {
+        _isListening = true;
+        _status = "Listening... Speak now";
         _recognizedText = '';
-        _lastWords = '';
         _words.clear();
       });
 
-      await _speech.listen(
+      // Set a timeout for speech recognition
+      _speechTimeout?.cancel();
+      _speechTimeout = Timer(Duration(seconds: 30), () {
+        if (_isListening) {
+          print('Speech timeout reached');
+          _stopListening();
+        }
+      });
+
+      bool started = await _speech.listen(
         onResult: (val) {
-          if (mounted) {
-            setState(() {
-              _recognizedText = val.recognizedWords;
-              _words = val.recognizedWords.split(' ');
+          print(
+            'Speech result: ${val.recognizedWords} (confidence: ${val.confidence}, final: ${val.finalResult})',
+          );
+          setState(() {
+            _recognizedText = val.recognizedWords;
+            _words = _recognizedText
+                .split(" ")
+                .where((word) => word.isNotEmpty)
+                .toList();
+
+            if (val.finalResult) {
+              _lastFullText = _recognizedText;
               _lastWords = val.recognizedWords;
-              if (_recognizedText.isNotEmpty) {
-                _textController.forward();
-              }
-              if (val.hasConfidenceRating && val.confidence > 0) {
-                // Optionally handle confidence
-              }
-            });
-          }
+              _confidence = val.confidence;
+              _status = "Got it! Processing...";
+            } else {
+              _status = "Listening... (${_recognizedText.length} chars)";
+            }
+
+            if (val.hasConfidenceRating && val.confidence > 0) {
+              _confidence = val.confidence;
+            }
+            // Show recognized text container animation
+            if (_recognizedText.isNotEmpty) {
+              _textController.forward();
+            }
+          });
         },
-        listenFor: const Duration(minutes: 1),
-        pauseFor: const Duration(seconds: 30),
+        listenFor: Duration(seconds: 30),
+        pauseFor: Duration(seconds: 3),
         partialResults: true,
+        onSoundLevelChange: (level) {
+          // Optional: Use this for additional audio feedback
+          print('Sound level: $level');
+        },
         cancelOnError: true,
-        listenMode: stt.ListenMode.dictation,
+        listenMode: stt.ListenMode.confirmation,
       );
-    } catch (e) {
-      print('Error starting speech recognition: $e');
-      if (mounted) {
+
+      if (!started) {
         setState(() {
           _isListening = false;
-          _status = "Failed to start speech recognition";
+          _status = "Failed to start listening";
+          _debugInfo = "Listen failed to start";
         });
       }
+    } catch (e) {
+      print('Error starting to listen: $e');
+      setState(() {
+        _isListening = false;
+        _status = "Error starting speech recognition";
+        _debugInfo = 'Listen error: $e';
+      });
     }
   }
 
-  void _stopListening() async {
+  void _stopListening() {
+    _speechTimeout?.cancel();
+
     try {
-      await _speech.stop();
-      if (mounted) {
-        setState(() {
-          _isListening = false;
-        });
-      }
+      _speech.stop();
     } catch (e) {
-      print('Error stopping speech recognition: $e');
+      print('Error stopping speech: $e');
     }
+
+    setState(() {
+      _isListening = false;
+      if (_recognizedText.isNotEmpty) {
+        _status =
+            "Processing: \"${_recognizedText.length > 50 ? _recognizedText.substring(0, 50) + '...' : _recognizedText}\"";
+      } else {
+        _status = "No speech detected. Try again.";
+      }
+    });
   }
 
   Future<void> _toggle() async {
@@ -208,7 +342,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
 
     try {
       setState(() {
-        _status = _running ? "Processing..." : "Listening...";
+        _status = _running ? "Stopping..." : "Starting...";
       });
 
       _statusController.forward().then((_) {
@@ -222,12 +356,12 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         await _service.stop();
         _stopListening();
         _pulseController.stop();
-        _textController.reverse();
 
         if (mounted) {
           setState(() {
-            _status =
-                "Tell me about this year's top 5 trends for Instagram marketers";
+            _status = _recognizedText.isNotEmpty
+                ? "Tap mic to speak again"
+                : "Ask me anything";
             _running = false;
           });
         }
@@ -235,23 +369,23 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         // Start both audio recording and speech recognition
         await _service.start();
         if (_speechAvailable) {
-          _startListening();
+          await _startListening();
         }
         _pulseController.repeat();
 
         if (mounted) {
           setState(() {
-            _status = "Listening... Tap to stop";
             _running = true;
           });
         }
       }
     } catch (e) {
-      print('Error toggling recording: $e');
+      debugPrint('Error toggling recording: $e');
       if (mounted) {
         setState(() {
           _status = "Error: ${e.toString()}";
           _running = false;
+          _debugInfo = 'Toggle error: $e';
         });
         _pulseController.stop();
       }
@@ -263,13 +397,41 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       _recognizedText = '';
       _lastWords = '';
       _words.clear();
+      _status = "Ask me anything";
     });
     _textController.reverse();
+  }
+
+  void _testSpeech() async {
+    // Test function to check speech recognition capabilities
+    if (!_speechAvailable) {
+      print('Speech not available for testing');
+      return;
+    }
+
+    try {
+      bool available = await _speech.initialize();
+      print('Speech available: $available');
+
+      var locales = await _speech.locales();
+      print(
+        'Available locales: ${locales.map((l) => '${l.name} (${l.localeId})').join('\n')}',
+      );
+
+      var systemLocale = await _speech.systemLocale();
+      print('System locale: ${systemLocale?.name} (${systemLocale?.localeId})');
+
+      bool hasPermission = await _speech.hasPermission;
+      print('Has microphone permission: $hasPermission');
+    } catch (e) {
+      print('Error testing speech: $e');
+    }
   }
 
   @override
   void dispose() {
     try {
+      _speechTimeout?.cancel();
       _levelSubscription?.cancel();
       _service.dispose();
       _speech.stop();
@@ -315,6 +477,11 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                 const SizedBox(height: 20),
                 _buildRecognizedText(),
               ],
+              // Debug info (remove in production)
+              if (_debugInfo.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _buildDebugInfo(),
+              ],
               const Spacer(flex: 2),
               _buildBottomControls(),
               const SizedBox(height: 40),
@@ -325,22 +492,40 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
     );
   }
 
+  Widget _buildDebugInfo() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.withOpacity(0.3)),
+      ),
+      child: Text(
+        'Debug: $_debugInfo',
+        style: TextStyle(
+          color: Colors.red.withOpacity(0.8),
+          fontSize: 12,
+          fontFamily: 'monospace',
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
+          IconButton(
+            icon: const Icon(
               Icons.arrow_back_ios_new,
               color: Colors.white70,
               size: 16,
             ),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
           ),
           const SizedBox(width: 16),
           AnimatedContainer(
@@ -385,7 +570,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Text writer",
+                  "Voice Assistant",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -395,9 +580,9 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                 Row(
                   children: [
                     Text(
-                      "Marketing in 2025",
+                      _speechAvailable ? "Ready" : "Not Available",
                       style: TextStyle(
-                        color: Colors.white60,
+                        color: _speechAvailable ? Colors.green : Colors.red,
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
                       ),
@@ -429,9 +614,17 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            child: const Icon(Icons.more_vert, color: Colors.white70, size: 20),
+          // Add test button for debugging
+          GestureDetector(
+            onTap: _testSpeech,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: const Icon(
+                Icons.bug_report,
+                color: Colors.white70,
+                size: 20,
+              ),
+            ),
           ),
         ],
       ),
@@ -609,7 +802,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "Recognized Speech",
+                        "Recognized Speech (${(_confidence * 100).toInt()}%)",
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 12,
@@ -670,10 +863,10 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
             icon: Icons.refresh,
             onTap: () {
               setState(() {
-                _status =
-                    "Tell me about this year's top 5 trends for Instagram marketers";
+                _status = "Ask me anything";
                 _recognizedText = '';
                 _lastWords = '';
+                _debugInfo = '';
               });
               _textController.reverse();
             },
@@ -712,7 +905,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   Widget _buildMicrophoneButton() {
     return AvatarGlow(
       animate: _isListening,
-      glowColor: Theme.of(context).primaryColor,
+      glowColor: _speechAvailable ? accentPink : Colors.red,
       duration: Duration(milliseconds: 1200),
       repeat: true,
       child: GestureDetector(
@@ -727,15 +920,19 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: _running
-                      ? [accentPink, primaryPurple]
-                      : [accentPink, const Color(0xFFff8a5b)],
+                  colors: _speechAvailable
+                      ? (_running
+                            ? [accentPink, primaryPurple]
+                            : [accentPink, const Color(0xFFff8a5b)])
+                      : [Colors.grey, Colors.grey.shade700],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: accentPink.withOpacity(0.5),
+                    color: _speechAvailable
+                        ? accentPink.withOpacity(0.5)
+                        : Colors.grey.withOpacity(0.3),
                     blurRadius: 25,
                     spreadRadius: 3 + (pulseValue * 10),
                   ),
@@ -752,160 +949,4 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       ),
     );
   }
-}
-
-// Enhanced 3D Mesh Painter for sophisticated visualization
-class Optimized3DMeshPainter extends CustomPainter {
-  final double waveTime;
-  final double particleTime;
-  final double meshTime;
-  final double level;
-  final bool isActive;
-
-  // Cache paint objects (avoid recreating per frame)
-  final Paint meshPaint = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.0;
-  final Paint particlePaint = Paint()..style = PaintingStyle.fill;
-
-  Optimized3DMeshPainter({
-    required this.waveTime,
-    required this.particleTime,
-    required this.meshTime,
-    required this.level,
-    required this.isActive,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-
-    _draw3DMesh(canvas, size, center);
-
-    if (isActive) {
-      _drawParticles(canvas, center);
-    }
-  }
-
-  void _draw3DMesh(Canvas canvas, Size size, Offset center) {
-    const gridSize = 10; // reduced from 15
-    const layers = 2; // reduced from 3
-
-    for (int layer = 0; layer < layers; layer++) {
-      final layerDepth = layer / layers;
-      final layerScale = 0.6 + layerDepth * 0.4 + level * 0.2;
-      final layerOpacity = 0.8 - layerDepth * 0.3;
-
-      final points = <List<Offset>>[];
-
-      for (int i = 0; i <= gridSize; i++) {
-        final row = <Offset>[];
-        for (int j = 0; j <= gridSize; j++) {
-          final x = (i / gridSize - 0.5) * 180 * layerScale;
-          final y = (j / gridSize - 0.5) * 180 * layerScale;
-
-          final waveX =
-              math.sin((i + j) * 0.3 + meshTime * 2 * math.pi) * 10 * level;
-          final waveY =
-              math.cos((i - j) * 0.4 + meshTime * 1.5 * math.pi) * 8 * level;
-          final waveZ =
-              math.sin(i * 0.2 + j * 0.3 + meshTime * math.pi) * 6 * level;
-
-          final projectedX = center.dx + x + waveX + waveZ * 0.4;
-          final projectedY = center.dy + y + waveY + waveZ * 0.25;
-
-          row.add(Offset(projectedX, projectedY));
-        }
-        points.add(row);
-      }
-
-      final baseOpacity = layerOpacity * (0.4 + level * 0.6);
-
-      // Horizontal lines
-      for (int i = 0; i < points.length; i++) {
-        final path = Path()..addPolygon(points[i], false);
-
-        final hue = (meshTime * 25 + layer * 50 + i * 4) % 360;
-        meshPaint.color = HSVColor.fromAHSV(
-          baseOpacity,
-          hue,
-          0.6 + level * 0.3,
-          0.8,
-        ).toColor();
-
-        canvas.drawPath(path, meshPaint);
-      }
-
-      // Vertical lines
-      for (int j = 0; j <= gridSize; j++) {
-        final path = Path();
-        for (int i = 0; i < points.length; i++) {
-          if (i == 0) {
-            path.moveTo(points[i][j].dx, points[i][j].dy);
-          } else {
-            path.lineTo(points[i][j].dx, points[i][j].dy);
-          }
-        }
-
-        final hue = (meshTime * 25 + j * 6 + layer * 50 + 120) % 360;
-        meshPaint.color = HSVColor.fromAHSV(
-          baseOpacity,
-          hue,
-          0.6 + level * 0.4,
-          0.7,
-        ).toColor();
-
-        canvas.drawPath(path, meshPaint);
-      }
-    }
-  }
-
-  void _drawParticles(Canvas canvas, Offset center) {
-    const particleCount = 12; // reduced from 20
-    const trailLength = 3; // reduced from 5
-
-    final colors = [
-      const Color(0xFFd4145a), // Pink
-      const Color(0xFF662d8c), // Purple
-      const Color(0xFFfbb03b), // Yellow
-    ];
-
-    for (int i = 0; i < particleCount; i++) {
-      final angle = (i / particleCount) * 2 * math.pi + particleTime * math.pi;
-      final distance =
-          70 + math.sin(particleTime * 2 * math.pi + i) * 30 * level;
-
-      final x = center.dx + math.cos(angle) * distance;
-      final y = center.dy + math.sin(angle) * distance;
-
-      final particleOpacity = (0.3 + level * 0.5);
-
-      particlePaint.color = colors[i % 3].withOpacity(particleOpacity);
-      canvas.drawCircle(Offset(x, y), 2 + level * 3, particlePaint);
-
-      // Shorter trail
-      for (int t = 1; t <= trailLength; t++) {
-        final trailAngle = angle - (t * 0.12);
-        final trailX = center.dx + math.cos(trailAngle) * distance;
-        final trailY = center.dy + math.sin(trailAngle) * distance;
-
-        particlePaint.color = colors[i % 3].withOpacity(
-          particleOpacity * (1 - t / trailLength),
-        );
-        canvas.drawCircle(
-          Offset(trailX, trailY),
-          (2 + level * 3) * (1 - t / trailLength * 0.6),
-          particlePaint,
-        );
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant Optimized3DMeshPainter oldDelegate) =>
-      oldDelegate.waveTime != waveTime ||
-      oldDelegate.particleTime != particleTime ||
-      oldDelegate.meshTime != meshTime ||
-      oldDelegate.level != level ||
-      oldDelegate.isActive != isActive;
 }

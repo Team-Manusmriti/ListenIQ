@@ -32,11 +32,26 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  // Helper method to ensure drawer is closed before navigation
+  void _navigateAndCloseDrawer(String routeName) {
+    // Close drawer if it's open
+    if (_scaffoldKey.currentState?.isDrawerOpen == true) {
+      Navigator.of(context).pop(); // Close the drawer
+    }
+
+    // Add a small delay to ensure drawer is fully closed
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        context.goNamed(routeName);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey,
-      drawer: const SideMenu(),
+      key: _scaffoldKey, // <-- Add this line
+      drawer: const Drawer(child: SideMenu()),
       body: Stack(
         children: [
           // Gradient Blobs
@@ -90,36 +105,30 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Builder(
-                        builder: (context) => GestureDetector(
-                          onTap: () {
-                            final scaffoldState = Scaffold.of(context);
-                            if (scaffoldState.isDrawerOpen) {
-                              scaffoldState.closeDrawer();
-                            } else {
-                              scaffoldState.openDrawer();
-                            }
-                          },
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(22),
-                              gradient: const LinearGradient(
-                                colors: [
-                                  Color(0xFFd4145a),
-                                  Color(0xFF662d8c),
-                                  Color(0xFFfbb03b),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                      GestureDetector(
+                        onTap: () {
+                          // Use the scaffold key to open drawer
+                          _scaffoldKey.currentState?.openDrawer();
+                        },
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(22),
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFFd4145a),
+                                Color(0xFF662d8c),
+                                Color(0xFFfbb03b),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            child: const Icon(
-                              Icons.menu,
-                              color: Colors.white,
-                              size: 24,
-                            ),
+                          ),
+                          child: const Icon(
+                            Icons.menu,
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ),
                       ),
@@ -166,7 +175,17 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                   // Search Bar
                   GestureDetector(
                     onTap: () {
-                      context.goNamed(RouteConstants.chatHome);
+                      // Always close the drawer before navigating
+                      if (_scaffoldKey.currentState?.isDrawerOpen == true) {
+                        Navigator.of(context).pop();
+                        Future.delayed(const Duration(milliseconds: 150), () {
+                          if (mounted) {
+                            context.goNamed(RouteConstants.chatHome);
+                          }
+                        });
+                      } else {
+                        context.goNamed(RouteConstants.chatHome);
+                      }
                     },
                     child: Container(
                       width: double.infinity,
@@ -200,7 +219,9 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                           const Spacer(),
                           GestureDetector(
                             onTap: () {
-                              context.goNamed(RouteConstants.voiceAssistant);
+                              _navigateAndCloseDrawer(
+                                RouteConstants.voiceAssistant,
+                              );
                             },
                             child: const Icon(
                               Icons.mic,
@@ -224,16 +245,25 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                         _buildAIToolCard(
                           'AI audio\nservice',
                           Icons.edit_outlined,
+                          onTap: () {
+                            context.goNamed(RouteConstants.voiceAssistant);
+                          },
                         ),
                         const SizedBox(width: 12),
                         _buildAIToolCard(
                           'AI video\nservice',
                           Icons.image_outlined,
+                          onTap: () {
+                            // context.goNamed(RouteConstants.videoAssistant);
+                          },
                         ),
                         const SizedBox(width: 12),
                         _buildAIToolCard(
                           'AI\nscreen recorder',
                           Icons.auto_awesome_outlined,
+                          onTap: () {
+                            // context.goNamed(RouteConstants.screenAssistant);
+                          },
                         ),
                       ],
                     ),
@@ -255,7 +285,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                       GestureDetector(
                         onTap: () {
-                          context.goNamed(RouteConstants.history);
+                          _navigateAndCloseDrawer(RouteConstants.history);
                         },
                         child: Text(
                           'See all',
@@ -327,11 +357,9 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAIToolCard(String title, IconData icon) {
+  Widget _buildAIToolCard(String title, IconData icon, {VoidCallback? onTap}) {
     return GestureDetector(
-      onTap: () {
-        // Handle tool card tap
-      },
+      onTap: onTap,
       child: Container(
         width: 120,
         height: 140,
@@ -379,7 +407,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
   ) {
     return GestureDetector(
       onTap: () {
-        // Handle history item tap
+        // Handle history item tap - you can add specific routes here
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -436,6 +464,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
+// Keep your existing WavePainter class unchanged
 class WavePainter extends CustomPainter {
   final double animationValue;
   final List<Color> gradientColors;
@@ -480,33 +509,6 @@ class WavePainter extends CustomPainter {
     path.close();
 
     canvas.drawPath(path, paint);
-
-    // Add a second layer for depth
-    // final path2 = Path();
-    // path2.moveTo(0, 0);
-    // path2.lineTo(0, size.height * 0.4);
-
-    // for (double x = 0; x <= size.width; x += 2) {
-    //   final y =
-    //       size.height * 0.4 +
-    //       15 *
-    //           math.sin((x * 0.015) + (animationValue * 2 * math.pi) + math.pi) +
-    //       8 * math.cos((x * 0.03) + (animationValue * 2 * math.pi));
-    //   path2.lineTo(x, y);
-    // }
-
-    // path2.lineTo(size.width, 0);
-    // path2.close();
-
-    // final paint2 = Paint()
-    //   ..shader = LinearGradient(
-    //     begin: Alignment.topCenter,
-    //     end: Alignment.bottomCenter,
-    //     colors: gradientColors.map((c) => c.withOpacity(0.5)).toList(),
-    //   ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
-    //   ..style = PaintingStyle.fill;
-
-    // canvas.drawPath(path2, paint2);
   }
 
   @override
