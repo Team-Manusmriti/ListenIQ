@@ -5,14 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:listen_iq/services/router_constants.dart';
 
-class SideMenu extends ConsumerStatefulWidget {
+class SideMenu extends StatefulWidget {
   const SideMenu({super.key});
 
   @override
-  ConsumerState<SideMenu> createState() => _SideMenuState();
+  State<SideMenu> createState() => _SideMenuState();
 }
 
-class _SideMenuState extends ConsumerState<SideMenu> {
+class _SideMenuState extends State<SideMenu> {
   @override
   void initState() {
     super.initState();

@@ -50,8 +50,8 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      key: _scaffoldKey, // <-- Add this line
-      drawer: const Drawer(child: SideMenu()),
+      key: _scaffoldKey,
+      drawer: const SideMenu(),
       body: Stack(
         children: [
           // Gradient Blobs
