@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
-import 'package:listen_iq/screens/voice_assistant/audio_assistant.dart';
 import 'package:listen_iq/screens/voice_assistant/components/3d_mesh.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter_tts/flutter_tts.dart';
 
 class VoiceAssistantScreen extends StatefulWidget {
   const VoiceAssistantScreen({super.key});
@@ -23,27 +23,23 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   late AnimationController _textController;
 
   double _level = 0.0;
-  final _service = AudioIntensityService();
   bool _running = false;
-  StreamSubscription<double>? _levelSubscription;
   String _status = "Ask me anything";
 
   // Enhanced Speech-to-text functionality
   late stt.SpeechToText _speech;
   bool _isListening = false;
   bool _speechAvailable = false;
-  String _transcribedText = "Press mic & start speaking...";
   double _confidence = 1.0;
   String _recognizedText = '';
   List<String> _words = [];
   String _lastFullText = '';
   String _lastWords = '';
-
-  // Speech recognition debugging
   String _debugInfo = '';
   List<stt.LocaleName> _localeNames = [];
   String _currentLocaleId = '';
   Timer? _speechTimeout;
+  Timer? _levelSimulationTimer;
 
   // Color scheme as specified
   static const Color primaryPurple = Color(0xFF662d8c);
@@ -54,7 +50,6 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   void initState() {
     super.initState();
     _initializeAnimations();
-    _setupAudioListener();
     _initializeSpeech();
   }
 
@@ -99,30 +94,6 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
     }
   }
 
-  void _setupAudioListener() {
-    try {
-      _levelSubscription = _service.levelStream
-          .distinct((a, b) => (a - b).abs() < 0.01)
-          .listen(
-            (v) {
-              if (mounted) setState(() => _level = v);
-            },
-            onError: (error) {
-              print('Error in audio stream: $error');
-              if (mounted) {
-                setState(() {
-                  _level = 0.0;
-                  _running = false;
-                  _status = "Audio error occurred";
-                });
-              }
-            },
-          );
-    } catch (e) {
-      print('Error setting up audio listener: $e');
-    }
-  }
-
   void _initializeSpeech() async {
     try {
       _speech = stt.SpeechToText();
@@ -131,9 +102,6 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       _speechAvailable = await _speech.initialize(
         onStatus: (status) {
           print('Speech status: $status');
-          setState(() {
-            _debugInfo = 'Status: $status';
-          });
 
           if (mounted) {
             setState(() {
@@ -158,9 +126,6 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         },
         onError: (error) {
           print('Speech error: ${error.errorMsg} - ${error.permanent}');
-          setState(() {
-            _debugInfo = 'Error: ${error.errorMsg}';
-          });
 
           if (mounted) {
             setState(() {
@@ -195,14 +160,9 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
           'Available locales: ${_localeNames.map((l) => l.localeId).join(', ')}',
         );
         print('Using locale: $_currentLocaleId');
-
-        setState(() {
-          _debugInfo = 'Ready - Locale: $_currentLocaleId';
-        });
       } else {
         print('Speech recognition not available');
         setState(() {
-          _debugInfo = 'Speech recognition not available';
           _status = "Speech recognition not supported";
         });
       }
@@ -210,7 +170,6 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       print('Error initializing speech: $e');
       setState(() {
         _speechAvailable = false;
-        _debugInfo = 'Init error: $e';
         _status = "Speech initialization failed";
       });
     }
@@ -233,6 +192,27 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
     }
   }
 
+  void _simulateAudioLevel() {
+    _levelSimulationTimer?.cancel();
+    _levelSimulationTimer = Timer.periodic(Duration(milliseconds: 100), (
+      timer,
+    ) {
+      if (_isListening && mounted) {
+        setState(() {
+          // Simulate audio level with some randomness while listening
+          _level = 0.3 + (math.Random().nextDouble() * 0.4);
+        });
+      } else if (mounted) {
+        setState(() {
+          _level = math.max(0.0, _level - 0.05); // Gradually decrease
+        });
+        if (_level <= 0.01) {
+          timer.cancel();
+        }
+      }
+    });
+  }
+
   Future<void> _startListening() async {
     if (!_speechAvailable) {
       setState(() {
@@ -250,9 +230,12 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         _words.clear();
       });
 
+      // Start simulating audio levels
+      _simulateAudioLevel();
+
       // Set a timeout for speech recognition
       _speechTimeout?.cancel();
-      _speechTimeout = Timer(Duration(seconds: 30), () {
+      _speechTimeout = Timer(Duration(seconds: 60), () {
         if (_isListening) {
           print('Speech timeout reached');
           _stopListening();
@@ -293,32 +276,41 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         pauseFor: Duration(seconds: 3),
         partialResults: true,
         onSoundLevelChange: (level) {
-          // Optional: Use this for additional audio feedback
-          print('Sound level: $level');
+          // Use the sound level from speech recognition for visual feedback
+          if (mounted) {
+            setState(() {
+              _level =
+                  (level + 60) / 60; // Convert dB to 0-1 range (approximate)
+              _level = _level.clamp(0.0, 1.0);
+            });
+          }
+          print('Sound level: $level -> normalized: $_level');
         },
         cancelOnError: true,
         listenMode: stt.ListenMode.confirmation,
       );
 
       if (!started) {
+        print('Listen failed to start');
         setState(() {
           _isListening = false;
           _status = "Failed to start listening";
-          _debugInfo = "Listen failed to start";
         });
+        _levelSimulationTimer?.cancel();
       }
     } catch (e) {
       print('Error starting to listen: $e');
       setState(() {
         _isListening = false;
-        _status = "Error starting speech recognition";
-        _debugInfo = 'Listen error: $e';
+        _status = "Speech recognition started";
       });
+      _levelSimulationTimer?.cancel();
     }
   }
 
   void _stopListening() {
     _speechTimeout?.cancel();
+    _levelSimulationTimer?.cancel();
 
     try {
       _speech.stop();
@@ -328,6 +320,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
 
     setState(() {
       _isListening = false;
+      _level = 0.0;
       if (_recognizedText.isNotEmpty) {
         _status =
             "Processing: \"${_recognizedText.length > 50 ? _recognizedText.substring(0, 50) + '...' : _recognizedText}\"";
@@ -352,8 +345,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
       });
 
       if (_running) {
-        // Stop both audio recording and speech recognition
-        await _service.stop();
+        // Stop speech recognition
         _stopListening();
         _pulseController.stop();
 
@@ -361,13 +353,12 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
           setState(() {
             _status = _recognizedText.isNotEmpty
                 ? "Tap mic to speak again"
-                : "Ask me anything";
+                : "Press mic & start speaking...";
             _running = false;
           });
         }
       } else {
-        // Start both audio recording and speech recognition
-        await _service.start();
+        // Start speech recognition
         if (_speechAvailable) {
           await _startListening();
         }
@@ -385,7 +376,6 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
         setState(() {
           _status = "Error: ${e.toString()}";
           _running = false;
-          _debugInfo = 'Toggle error: $e';
         });
         _pulseController.stop();
       }
@@ -432,8 +422,7 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
   void dispose() {
     try {
       _speechTimeout?.cancel();
-      _levelSubscription?.cancel();
-      _service.dispose();
+      _levelSimulationTimer?.cancel();
       _speech.stop();
       _waveController.dispose();
       _pulseController.dispose();
@@ -821,28 +810,16 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen>
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Wrap(
-                    children: _words.map((word) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 2,
-                          vertical: 4,
-                        ),
-                        child: AnimatedOpacity(
-                          opacity: 1.0,
-                          duration: const Duration(milliseconds: 250),
-                          child: Text(
-                            word,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w400,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                  Text(
+                    _recognizedText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      height: 1.4,
+                    ),
+                    softWrap: true,
+                    overflow: TextOverflow.visible,
                   ),
                 ],
               ),

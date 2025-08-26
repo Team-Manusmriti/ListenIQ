@@ -28,7 +28,7 @@ class HistoryScreen extends StatelessWidget {
               title: 'Previous 30 days',
               items: [
                 "Suggest a medicine for stomachache",
-                "AWhat should I do to control my cholesterol?",
+                "What should I do to control my cholesterol?",
                 "What is the dosage of paracetamol",
               ],
             ),
