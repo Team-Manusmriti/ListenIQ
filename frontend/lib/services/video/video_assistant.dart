@@ -1,12 +1,13 @@
 // video_detection_screen.dart
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
-import 'package:video_player/video_player.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:camera/camera.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:video_player/video_player.dart';
 
 class VideoDetectionScreen extends StatefulWidget {
   const VideoDetectionScreen({Key? key}) : super(key: key);
