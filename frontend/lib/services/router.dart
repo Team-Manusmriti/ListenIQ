@@ -6,6 +6,8 @@ import 'package:listen_iq/screens/history.dart' show HistoryScreen;
 import 'package:listen_iq/screens/home.dart';
 import 'package:listen_iq/screens/voice_assistant/voice_assistant.dart';
 import 'package:listen_iq/services/router_constants.dart';
+import 'package:listen_iq/services/video/video_assistant.dart';
+import 'package:listen_iq/services/video/video_uploading.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/home',
@@ -38,18 +40,43 @@ final GoRouter router = GoRouter(
                 return ChatScreen();
               },
             ),
-          ],
-        ),
+            GoRoute(
+              path: '/videoAssistant',
+              name: RouteConstants.videoAssistant,
+              builder: (BuildContext context, GoRouterState state) {
+                return VideoAssistantScreen();
+              },
+              routes: <RouteBase>[
+                GoRoute(
+                  path: '/upload',
+                  name: RouteConstants.videoUpload,
+                  builder: (BuildContext context, GoRouterState state) {
+                    return VideoUploadingScreen();
+                  },
+                ),
+              ],
+            ),
 
-        GoRoute(
-          path: '/history',
-          name: RouteConstants.history,
-          builder: (BuildContext context, GoRouterState state) {
-            return HistoryScreen();
-          },
+            //    GoRoute(
+            //   path: '/videoAssistant',
+            //   name: RouteConstants.videoAssistant,
+            //   builder: (BuildContext context, GoRouterState state) {
+            //     return VideoUploadingScreen();
+            //   },
+            // ),
+          ],
         ),
       ],
     ),
+
+    GoRoute(
+      path: '/history',
+      name: RouteConstants.history,
+      builder: (BuildContext context, GoRouterState state) {
+        return HistoryScreen();
+      },
+    ),
+
     // GoRoute(
     //   path: '/settings',
     //   name: RouteConstants.settings,

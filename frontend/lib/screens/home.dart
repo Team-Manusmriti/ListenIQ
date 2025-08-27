@@ -254,7 +254,7 @@ class _HomePageState extends State<HomeScreen> with TickerProviderStateMixin {
                           'AI video\nservice',
                           Icons.image_outlined,
                           onTap: () {
-                            // context.goNamed(RouteConstants.videoAssistant);
+                            context.goNamed(RouteConstants.videoAssistant);
                           },
                         ),
                         const SizedBox(width: 12),
