@@ -1,6 +1,5 @@
 // video_detection_screen.dart
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:video_player/video_player.dart';
@@ -232,13 +231,27 @@ class _VideoDetectionScreenState extends State<VideoDetectionScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Video Object Detection'),
-        backgroundColor: Colors.blue.shade600,
-        foregroundColor: Colors.white,
+        title: const Text('Video Object Detection'),
+        titleTextStyle: TextStyle(
+          color: Colors.grey.shade200,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFFd4145a).withOpacity(0.3),
+                const Color(0xFF662d8c).withOpacity(0.4),
+                const Color(0xFFfbb03b).withOpacity(0.2),
+              ],
+            ),
+          ),
+        ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
-          labelColor: Colors.white,
+          labelColor: Colors.white.withOpacity(0.6),
           unselectedLabelColor: Colors.white70,
           tabs: const [
             Tab(icon: Icon(Icons.upload_file), text: 'Video Upload'),
