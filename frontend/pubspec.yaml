@@ -80,6 +80,9 @@ dependencies:
    # For advanced video processing
   ffmpeg_kit_flutter_new: ^3.2.0
 
+  # Charts for analytics
+  fl_chart: ^1.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -101,8 +104,11 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    # Embedding model (you provide this file)
-    - assets/models/sentence_transformer.tflite
+    # Embedding model 
+    - assets/models/
+    - assets/images/
+    - assets/labels/
+    - assets/audio/
     # WordPiece vocab for tokenizer (you provide vocab.txt from the model)
     - assets/tokenizer/vocab.txt
     - assets/enc_files/
