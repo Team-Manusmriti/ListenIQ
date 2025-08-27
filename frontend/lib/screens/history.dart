@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listen_iq/screens/components/appbar.dart';
+import 'package:listen_iq/screens/widgets/appbar.dart';
 import 'package:listen_iq/services/router_constants.dart';
 
 class HistoryScreen extends StatelessWidget {

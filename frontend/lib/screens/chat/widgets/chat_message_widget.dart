@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:listen_iq/screens/chat/entities/message_bot.dart';
 import 'package:listen_iq/screens/chat/entities/message_group.dart';
-import 'package:listen_iq/screens/components/colors.dart';
+import 'package:listen_iq/screens/widgets/colors.dart';
 
 class ChatMessageWidget extends StatelessWidget {
   final MessageGroup group;

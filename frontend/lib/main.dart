@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:listen_iq/services/router.dart';
-import 'screens/home.dart';
+import 'package:listen_iq/utils/app_initialization.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize app
+  await AppInitialization.initialize();
+  runApp(const ListenIQApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class ListenIQApp extends StatelessWidget {
+  const ListenIQApp({super.key});
 
   // This widget is the root of your application.
   @override

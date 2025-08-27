@@ -1,5 +1,5 @@
 name: listen_iq
-description: "Your personalised overall assistant."
+description: "AI-powered audio and video analysis platform"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
@@ -29,22 +29,45 @@ dependencies:
   flutter:
     sdk: flutter
   go_router: ^16.2.0     # Routing
-  lucide_icons_flutter: ^3.0.9       # icons
-  flutter_riverpod: ^2.6.1       # State management
+  
+  # Permissions
   permission_handler: ^12.0.1      # Requesting runtime permissions
   speech_to_text: ^7.3.0      # speech recognition
-  path_provider: ^2.1.5    # path provider
+  
   avatar_glow: ^3.0.1     # mic background visual
-  path: ^1.9.1     # path of files
+ 
+  # Machine Learning
   sqflite: ^2.4.2     # SQLite database
   encrypt: ^5.0.3         # AES decryption helper
   tflite_flutter: ^0.11.0  # TFLite inference
   collection: ^1.19.1      # Collection utilities
   huggingface_dart: ^0.0.2  # Hugging Face API
+
   flutter_tts: ^4.2.3      # Text-to-speech
+
   flutter_launcher_icons: ^0.14.4  # Flutter launcher icons
 
+  # Video and Camera
+  camera: ^0.11.2      # Camera
+  video_player: ^2.10.0  # Video player
+
+   # HTTP and Networking
+  file_picker: ^10.3.2  # File picker
+  path_provider: ^2.1.5    # path provider
+  path: ^1.9.1     # path of files
+
+   # HTTP and Networking
+  http: ^1.5.0  # HTTP client
+  dio: ^5.9.0  # HTTP client
+
+  # UI and State Management
   cupertino_icons: ^1.0.8
+  lucide_icons_flutter: ^3.0.9       # icons
+  flutter_riverpod: ^2.6.1       # State management
+
+  # Utils
+  intl: ^0.20.2                  # Internationalization
+  shared_preferences: ^2.5.3      # Shared preferences
 
 dev_dependencies:
   flutter_test:
@@ -63,10 +86,6 @@ flutter_launcher_icons:
 
 # The following section is specific to Flutter packages.
 flutter:
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:

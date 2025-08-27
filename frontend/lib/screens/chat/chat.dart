@@ -4,7 +4,7 @@ import 'package:listen_iq/screens/chat/entities/message_bot.dart';
 import 'package:listen_iq/screens/chat/entities/message_group.dart';
 import 'package:listen_iq/screens/chat/widgets/bot_search_bar.dart';
 import 'package:listen_iq/screens/chat/widgets/chat_message_widget.dart';
-import 'package:listen_iq/screens/components/appbar.dart';
+import 'package:listen_iq/screens/widgets/appbar.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
