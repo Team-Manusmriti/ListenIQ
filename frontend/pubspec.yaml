@@ -30,19 +30,19 @@ dependencies:
     sdk: flutter
   go_router: ^16.2.0     # Routing
   lucide_icons_flutter: ^3.0.9       # icons
-  flutter_riverpod: ^2.6.1.        # State management
-  permission_handler: ^12.0.1.      # Requesting runtime permissions
-  speech_to_text: ^7.3.0.      # speech recognition
-  path_provider: ^2.1.5.    # path provider
-  avatar_glow: ^3.0.1.     # mic background visual
-  path: ^1.9.1.     # path of files
-  sqflite: ^2.4.2.     # SQLite database
-  encrypt: ^5.0.3.         # AES decryption helper
-  tflite_flutter: ^0.11.0.  # TFLite inference
-  collection: ^1.19.1.      # Collection utilities
-  huggingface_dart: ^0.0.2.  # Hugging Face API
-  flutter_tts: ^4.2.3.      # Text-to-speech
-  flutter_launcher_icons: ^0.14.4.    # Flutter launcher icons
+  flutter_riverpod: ^2.6.1       # State management
+  permission_handler: ^12.0.1      # Requesting runtime permissions
+  speech_to_text: ^7.3.0      # speech recognition
+  path_provider: ^2.1.5    # path provider
+  avatar_glow: ^3.0.1     # mic background visual
+  path: ^1.9.1     # path of files
+  sqflite: ^2.4.2     # SQLite database
+  encrypt: ^5.0.3         # AES decryption helper
+  tflite_flutter: ^0.11.0  # TFLite inference
+  collection: ^1.19.1      # Collection utilities
+  huggingface_dart: ^0.0.2  # Hugging Face API
+  flutter_tts: ^4.2.3      # Text-to-speech
+  flutter_launcher_icons: ^0.14.4  # Flutter launcher icons
 
   cupertino_icons: ^1.0.8
 
