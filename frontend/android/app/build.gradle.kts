@@ -1,13 +1,12 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android") // use correct kotlin plugin id
+    id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.example.listeniq"
-    compileSdk = 36
-    ndkVersion = flutter.ndkVersion
+    compileSdk = 36  
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -25,23 +24,29 @@ android {
         versionCode = 1
         versionName = "1.0"
         multiDexEnabled = true
+    }
 
-        ndk {
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
+    // ABI splitting for smaller APKs
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a")
+            isUniversalApk = false
         }
     }
 
     buildTypes {
-    release {
-        isMinifyEnabled = false   // or true in production
-        isShrinkResources = false // must use "isShrinkResources"
-        proguardFiles(
-            getDefaultProguardFile("proguard-android-optimize.txt"),
-            "proguard-rules.pro"
-        )
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
     }
 }
-
 
 
 dependencies {
@@ -49,10 +54,7 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.9.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-
-    // Multidex support
     implementation("androidx.multidex:multidex:2.0.1")
-}
 }
 
 flutter {
