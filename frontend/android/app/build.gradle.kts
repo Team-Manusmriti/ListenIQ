@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.listeniq"
-    compileSdk = 34
+    compileSdk = 36
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -20,7 +20,7 @@ android {
     defaultConfig {
         applicationId = "com.example.listeniq"
         minSdk = flutter.minSdkVersion
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
         multiDexEnabled = true
@@ -28,7 +28,6 @@ android {
 
     splits {
         abi {
-            isEnabled = true
             reset()
             include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false
