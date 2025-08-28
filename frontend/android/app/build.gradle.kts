@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.listeniq"
-    compileSdk = 36  
+    compileSdk = 34
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -26,10 +26,9 @@ android {
         multiDexEnabled = true
     }
 
-    // ABI splitting for smaller APKs
     splits {
         abi {
-            isEnable = true
+            isEnabled = true
             reset()
             include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false
@@ -47,7 +46,6 @@ android {
         }
     }
 }
-
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
