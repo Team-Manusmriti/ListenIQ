@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:listen_iq/services/video/video_detection_service.dart.dart';
 import 'permission_handler.dart';
+import 'package:listen_iq/services/video/video_processing_service.dart';
 
 class AppInitialization {
   static List<CameraDescription>? cameras;
@@ -23,7 +23,15 @@ class AppInitialization {
       }
 
       // Check backend service health
-      final serviceHealthy = await VideoDetectionService.checkServiceHealth();
+      bool serviceHealthy = true;
+      try {
+        // Replace with actual backend health check if available
+        // serviceHealthy = await VideoProcessingService().checkBackendHealth();
+        serviceHealthy =
+            true; // Placeholder until health check method is implemented
+      } catch (e) {
+        debugPrint('Service health check failed: $e');
+      }
 
       _initialized = true;
       return serviceHealthy;

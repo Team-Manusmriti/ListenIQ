@@ -1,110 +1,123 @@
-// models/detection_result.dart
+import 'package:flutter/material.dart';
+
 class DetectionResult {
-  final List<DetectedObject> objects;
-  final String processingTime;
-  final String status;
-  final String? timestamp;
-  final int? totalFrames;
-  final VideoInfo? videoInfo;
+  final String label;
+  final double confidence;
+  final Rect boundingBox;
+  final DateTime timestamp;
+  final Map<String, dynamic>? metadata;
 
   DetectionResult({
-    required this.objects,
-    required this.processingTime,
-    required this.status,
-    this.timestamp,
-    this.totalFrames,
-    this.videoInfo,
+    required this.label,
+    required this.confidence,
+    required this.boundingBox,
+    required this.timestamp,
+    this.metadata,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'label': label,
+      'confidence': confidence,
+      'boundingBox': {
+        'left': boundingBox.left,
+        'top': boundingBox.top,
+        'width': boundingBox.width,
+        'height': boundingBox.height,
+      },
+      'timestamp': timestamp.toIso8601String(),
+      'metadata': metadata,
+    };
+  }
 
   factory DetectionResult.fromJson(Map<String, dynamic> json) {
     return DetectionResult(
-      objects:
-          (json['objects'] as List<dynamic>?)
-              ?.map((obj) => DetectedObject.fromJson(obj))
-              .toList() ??
-          [],
-      processingTime: json['processingTime'] ?? 'Unknown',
-      status: json['status'] ?? 'Unknown',
-      timestamp: json['timestamp'],
-      totalFrames: json['totalFrames'],
-      videoInfo: json['videoInfo'] != null
-          ? VideoInfo.fromJson(json['videoInfo'])
-          : null,
+      label: json['label'],
+      confidence: json['confidence'],
+      boundingBox: Rect.fromLTWH(
+        json['boundingBox']['left'],
+        json['boundingBox']['top'],
+        json['boundingBox']['width'],
+        json['boundingBox']['height'],
+      ),
+      timestamp: DateTime.parse(json['timestamp']),
+      metadata: json['metadata'],
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'objects': objects.map((obj) => obj.toJson()).toList(),
-      'processingTime': processingTime,
-      'status': status,
-      'timestamp': timestamp,
-      'totalFrames': totalFrames,
-      'videoInfo': videoInfo?.toJson(),
-    };
   }
 }
 
-class DetectedObject {
-  final String name;
-  final String className;
+class ActionResult {
+  final String action;
   final double confidence;
-  final List<int>? bbox;
-  final List<int>? center;
-  final List<int>? size;
+  final DateTime timestamp;
+  final List<String>? alternativeActions;
+  final Map<String, dynamic>? metadata;
 
-  DetectedObject({
-    required this.name,
-    required this.className,
+  ActionResult({
+    required this.action,
     required this.confidence,
-    this.bbox,
-    this.center,
-    this.size,
+    required this.timestamp,
+    this.alternativeActions,
+    this.metadata,
   });
-
-  factory DetectedObject.fromJson(Map<String, dynamic> json) {
-    return DetectedObject(
-      name: json['name'] ?? json['class'] ?? 'Unknown',
-      className: json['class'] ?? json['name'] ?? 'Unknown',
-      confidence: (json['confidence'] ?? json['score'] ?? 0.0).toDouble(),
-      bbox: json['bbox'] != null ? List<int>.from(json['bbox']) : null,
-      center: json['center'] != null ? List<int>.from(json['center']) : null,
-      size: json['size'] != null ? List<int>.from(json['size']) : null,
-    );
-  }
 
   Map<String, dynamic> toJson() {
     return {
-      'name': name,
-      'class': className,
+      'action': action,
       'confidence': confidence,
-      'bbox': bbox,
-      'center': center,
-      'size': size,
+      'timestamp': timestamp.toIso8601String(),
+      'alternativeActions': alternativeActions,
+      'metadata': metadata,
     };
+  }
+
+  factory ActionResult.fromJson(Map<String, dynamic> json) {
+    return ActionResult(
+      action: json['action'],
+      confidence: json['confidence'],
+      timestamp: DateTime.parse(json['timestamp']),
+      alternativeActions: json['alternativeActions']?.cast<String>(),
+      metadata: json['metadata'],
+    );
   }
 }
 
-class VideoInfo {
-  final String originalName;
-  final int size;
-  final String duration;
+class SpeechResult {
+  final String text;
+  final double confidence;
+  final DateTime timestamp;
+  final bool isFinal;
+  final List<String>? alternatives;
+  final String? language;
 
-  VideoInfo({
-    required this.originalName,
-    required this.size,
-    required this.duration,
+  SpeechResult({
+    required this.text,
+    required this.confidence,
+    required this.timestamp,
+    this.isFinal = true,
+    this.alternatives,
+    this.language,
   });
 
-  factory VideoInfo.fromJson(Map<String, dynamic> json) {
-    return VideoInfo(
-      originalName: json['originalName'] ?? 'Unknown',
-      size: json['size'] ?? 0,
-      duration: json['duration'] ?? 'Unknown',
-    );
+  Map<String, dynamic> toJson() {
+    return {
+      'text': text,
+      'confidence': confidence,
+      'timestamp': timestamp.toIso8601String(),
+      'isFinal': isFinal,
+      'alternatives': alternatives,
+      'language': language,
+    };
   }
 
-  Map<String, dynamic> toJson() {
-    return {'originalName': originalName, 'size': size, 'duration': duration};
+  factory SpeechResult.fromJson(Map<String, dynamic> json) {
+    return SpeechResult(
+      text: json['text'],
+      confidence: json['confidence'],
+      timestamp: DateTime.parse(json['timestamp']),
+      isFinal: json['isFinal'] ?? true,
+      alternatives: json['alternatives']?.cast<String>(),
+      language: json['language'],
+    );
   }
 }

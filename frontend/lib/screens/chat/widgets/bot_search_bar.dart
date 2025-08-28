@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:go_router/go_router.dart';
 import 'package:listen_iq/screens/widgets/colors.dart';
-import 'package:listen_iq/services/router_constants.dart';
+import 'package:listen_iq/utils/router/router_constants.dart';
 
 class BotSearchBar extends StatefulWidget {
   const BotSearchBar({super.key});

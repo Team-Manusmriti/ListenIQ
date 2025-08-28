@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:listen_iq/services/router.dart';
+import 'package:listen_iq/utils/router/router.dart';
 import 'package:listen_iq/utils/app_initialization.dart';
 
 Future<void> main() async {

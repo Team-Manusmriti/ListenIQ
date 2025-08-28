@@ -19,9 +19,8 @@ android {
     }
 
     defaultConfig {
-        defaultConfig {
         applicationId = "com.example.listeniq"
-    minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -44,7 +43,7 @@ android {
         }
     }
 }
-}
+
 
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")

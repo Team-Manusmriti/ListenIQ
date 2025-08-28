@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:listen_iq/services/router_constants.dart';
+import 'package:listen_iq/utils/router/router_constants.dart';
 
 class SideMenu extends StatefulWidget {
   const SideMenu({super.key});

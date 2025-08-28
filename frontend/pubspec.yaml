@@ -73,9 +73,9 @@ dependencies:
   flutter_sound: ^9.28.0       # Audio recording and processing
   audioplayers: ^6.5.0         # Audio playback
 
-  # TensorFlow Lite
-  tflite_flutter: ^0.11.0        # TFLite inference
-  tflite_flutter_helper: ^0.3.1    # TFLite helper functions
+  # ONNX
+  onnxruntime: ^1.4.1     # ONNX Runtime
+  ffi: ^2.1.0    # Foreign Function Interface
 
    # For advanced video processing
   ffmpeg_kit_flutter_new: ^3.2.0
@@ -106,9 +106,8 @@ flutter:
   assets:
     # Embedding model 
     - assets/models/
-    - assets/images/
     - assets/labels/
-    - assets/audio/
+   
     # WordPiece vocab for tokenizer (you provide vocab.txt from the model)
     - assets/tokenizer/vocab.txt
     - assets/enc_files/

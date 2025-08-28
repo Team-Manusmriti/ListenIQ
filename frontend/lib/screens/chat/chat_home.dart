@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:listen_iq/screens/chat/widgets/bot_search_bar.dart';
 import 'package:listen_iq/screens/widgets/appbar.dart';
 import 'package:listen_iq/screens/widgets/sidemenu.dart';
-import '../../services/router_constants.dart';
+import '../../utils/router/router_constants.dart';
 
 class ChatHome extends StatefulWidget {
   const ChatHome({super.key});
